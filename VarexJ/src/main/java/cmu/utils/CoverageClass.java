@@ -4,7 +4,9 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import cmu.conditional.Conditional;
@@ -127,6 +129,12 @@ public class CoverageClass {
 					break;
 				case time:
 					coverTime(instruction, time, file);
+					break;
+				case readInteraction:
+					coverReadInteraction(newLocalSize, oldLocalSize, instruction, ctx, newLocal, file);
+					break;
+				case writeInteraction:
+					coverWriteInteraction(newLocalSize, oldLocalSize, instruction, ctx, newLocal, file);
 					break;
 				default:
 					throw new RuntimeException(JPF.SELECTED_COVERAGE_TYPE + " not implemented");
@@ -331,6 +339,24 @@ public class CoverageClass {
 		return instruction;
 	}
 
+	private void coverReadInteraction(int newLocalSize, int oldLocalSize, Instruction instruction, FeatureExpr ctx, Object newLocal, String file) {
+		
+		Interaction interaction = JPF.COVERAGE.getCoverage(file, instruction.getLineNumber());
+		if (interaction != null) {
+//			System.out.println(interaction.toString());
+		}
+
+	}
+	
+	private void coverWriteInteraction(int newLocalSize, int oldLocalSize, Instruction instruction, FeatureExpr ctx, Object newLocal, String file) {
+		
+		Interaction interaction = JPF.COVERAGE.getCoverage(file, instruction.getLineNumber());
+		if (interaction != null) {
+//			System.out.println(interaction.toString());
+		}
+
+	}
+	
 	public void coverField(FeatureExpr ctx, ElementInfo eiFieldOwner, Conditional<?> val, Conditional<?> oldValue, StackFrame frame, ThreadInfo ti, FieldInfo fi) {
 		if (JPF.COVERAGE != null) {
 			if (JPF.SELECTED_COVERAGE_TYPE == JPF.COVERAGE_TYPE.interaction) {
@@ -362,5 +388,69 @@ public class CoverageClass {
 				}
 			}
 		}
+	}
+	
+	public void coverWriteField(FeatureExpr ctx, Conditional<?> val, Conditional<?> field, ElementInfo eiFieldOwner, FieldInfo fi, Map<String, Map<Integer, List<HighlightingInfo>>> highlightingInfoMap, StackFrame frame) {
+		if(JPF.COVERAGE != null){
+			if(JPF.SELECTED_COVERAGE_TYPE == JPF.COVERAGE_TYPE.writeInteraction){
+				if (val.size() - field.size() != 0) {
+					StringBuilder text = new StringBuilder();
+					text.append("Value of (" + fi.getName() + ") is changed under different contexts: ");
+//					text.append("\n(");
+					Map<Integer, List<HighlightingInfo>> infoMap = highlightingInfoMap.get(frame.getClassInfo().getName());
+					List<HighlightingInfo> prevCtxDetails = infoMap.get(fi.getFieldIndex());
+					if(prevCtxDetails != null){
+						for (HighlightingInfo info : prevCtxDetails) {
+							text.append("\n(");
+							text.append(Conditional.getCTXString(info.getCtx()));
+							text.append(") ");
+							text.append("in class " + info.getClassName() + " at line number: " + info.getLineNumber());
+						}
+					}
+//					text.append(")");
+					
+					CoverageLogger.logInteraction(frame, val.size() - field.size(), text, ctx);
+					CoverageLogger.logInteraction(frame.getPrevious(), val.size() - field.size(), text, ctx);
+					CoverageLogger.logInteraction(frame.getPrevious().getPrevious(), val.size() - field.size(), text, ctx);
+				
+				}
+			}
+		}
+		
+	}
+	
+	public void coverReadField(FeatureExpr ctx, Conditional<?> val, Conditional<?> field, FeatureExpr preCtx, FieldInfo fi, StackFrame frame, Map<String, Map<Integer, List<HighlightingInfo>>> highlightingInfoMap) {
+		if(JPF.COVERAGE != null){
+			if(JPF.SELECTED_COVERAGE_TYPE == JPF.COVERAGE_TYPE.readInteraction){
+				if (val.size() - field.size() != 0) {
+					StringBuilder text = new StringBuilder();
+					text.append("Value of (" + fi.getName() + ") is read under context ");
+					text.append("(");
+					text.append(Conditional.getCTXString(ctx));
+					text.append("), but it was changed under contexts: ");
+					text.append("\n");
+					Map<Integer, List<HighlightingInfo>> infoMap = highlightingInfoMap.get(fi.getClassInfo().getName());
+					if(infoMap != null){
+					List<HighlightingInfo> prevCtxDetails = infoMap.get(fi.getFieldIndex());
+					if(prevCtxDetails != null){
+						for (HighlightingInfo info : prevCtxDetails) {
+							text.append("(");
+							text.append(Conditional.getCTXString(info.getCtx()));
+							text.append(")");
+							text.append(" in class " + info.getClassName() + " at line no: " + info.getLineNumber());
+							text.append("\n");
+						}
+					}
+					}
+//					text.append(frame.trace(ctx));
+//					text.append("\n");
+//					text.append(": ");
+					
+					
+					CoverageLogger.logInteraction(frame, val.size() - field.size(), text, ctx);
+				
+				}
+		}
+	}
 	}
 }

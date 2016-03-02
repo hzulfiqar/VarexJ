@@ -343,7 +343,7 @@ public class JPF implements Runnable {
   }
   
   public enum COVERAGE_TYPE {
-	  feature, stack, local, context, composedContext, time, interaction
+	  feature, stack, local, context, composedContext, time, interaction, readInteraction, writeInteraction
   }
   
   public static COVERAGE_TYPE SELECTED_COVERAGE_TYPE = null;
@@ -387,6 +387,14 @@ public class JPF implements Runnable {
 							break;
 						case interaction:
 							COVERAGE.setType("Interaction: ");
+							COVERAGE.setBaseValue(0);
+							break;
+						case readInteraction:
+							COVERAGE.setType("Read Interaction: ");
+							COVERAGE.setBaseValue(0);
+							break;
+						case writeInteraction:
+							COVERAGE.setType("Write Interaction: ");
 							COVERAGE.setBaseValue(0);
 							break;
 						default:

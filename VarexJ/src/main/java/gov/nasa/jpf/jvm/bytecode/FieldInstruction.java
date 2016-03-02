@@ -18,9 +18,15 @@
 //
 package gov.nasa.jpf.jvm.bytecode;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import cmu.conditional.ChoiceFactory;
 import cmu.conditional.Conditional;
 import cmu.conditional.One;
+import cmu.utils.HighlightingInfo;
 import de.fosd.typechef.featureexpr.FeatureExpr;
 import de.fosd.typechef.featureexpr.FeatureExprFactory;
 import gov.nasa.jpf.Config;
@@ -35,6 +41,7 @@ import gov.nasa.jpf.vm.StackFrame;
 import gov.nasa.jpf.vm.ThreadInfo;
 import gov.nasa.jpf.vm.Types;
 import gov.nasa.jpf.vm.VM;
+import scala.languageFeature.higherKinds;
 
 /**
  * parent class for PUT/GET FIELD/STATIC insns
@@ -43,337 +50,375 @@ import gov.nasa.jpf.vm.VM;
  * fields - w/o the instance/static helper methods we would have to duplicate
  * code in the getters/setters
  */
-public abstract class FieldInstruction extends JVMInstruction implements VariableAccessor
-{
-  //--- vm.por.sync_detection related settings
-  static FieldLockInfoFactory fliFactory;
-  static boolean skipFinals; // do we ignore final fields for POR
-  static boolean skipStaticFinals;  // do we ignore static final fields for POR
-  static boolean skipConstructedFinals;  // do we ignore final fields for POR after the object's constructor has finished?
+public abstract class FieldInstruction extends JVMInstruction implements VariableAccessor {
+	// --- vm.por.sync_detection related settings
+	static FieldLockInfoFactory fliFactory;
+	static boolean skipFinals; // do we ignore final fields for POR
+	static boolean skipStaticFinals; // do we ignore static final fields for POR
+	static boolean skipConstructedFinals; // do we ignore final fields for POR
+											// after the object's constructor
+											// has finished?
+	protected static Map<String, Map<Integer, List<HighlightingInfo>>> highlightingInfoMap = new HashMap<String, Map<Integer, List<HighlightingInfo>>>();
 
-  
-  protected String fname;
-  protected String className;
-  protected String varId;
+	protected String fname;
+	protected String className;
+	protected String varId;
 
-  protected FieldInfo fi; // lazy eval, hence not public
+	protected FieldInfo fi; // lazy eval, hence not public
 
-  protected int    size;  // is it a word or a double word field
-  protected boolean isReferenceField;
+	protected int size; // is it a word or a double word field
+	protected boolean isReferenceField;
 
-  protected Conditional<?> lastValue;
-  
-  
-   public static void init (Config config) {
-    if (config.getBoolean("vm.por")) {
-       skipFinals = config.getBoolean("vm.por.skip_finals", true);
-       skipStaticFinals = config.getBoolean("vm.por.skip_static_finals", false);
-       skipConstructedFinals = config.getBoolean("vm.por.skip_constructed_finals", false);
+	protected Conditional<?> lastValue;
 
-      if (config.getBoolean("vm.por.sync_detection")) {
-        fliFactory = config.getEssentialInstance("vm.por.fli_factory.class", FieldLockInfoFactory.class);
-      }
-     }
-   }
-  
-  protected FieldInstruction() {}
+	public static void init(Config config) {
+		if (config.getBoolean("vm.por")) {
+			skipFinals = config.getBoolean("vm.por.skip_finals", true);
+			skipStaticFinals = config.getBoolean("vm.por.skip_static_finals", false);
+			skipConstructedFinals = config.getBoolean("vm.por.skip_constructed_finals", false);
 
-  protected FieldInstruction(String name, String clsName, String fieldDescriptor){
-    fname = name;
-    className = Types.getClassNameFromTypeName(clsName);
-    isReferenceField = Types.isReferenceSignature(fieldDescriptor);
-    size = Types.getTypeSize(fieldDescriptor);
-  }
+			if (config.getBoolean("vm.por.sync_detection")) {
+				fliFactory = config.getEssentialInstance("vm.por.fli_factory.class", FieldLockInfoFactory.class);
+			}
+		}
+	}
 
-  public String getClassName(){
-     return className;
-  }
+	protected FieldInstruction() {
+	}
 
-  public String getFieldName(){
-	  return fname;
-  }
-  /**
-   * only defined in instructionExecuted() notification context
-   */
-  public long getLastValue() {
-	  if (lastValue.getValue() instanceof Long) {
-		return (Long)lastValue.getValue();  
-	  }
-    throw new RuntimeException(lastValue.getValue() + " not instance of Long");
-  }
-  
-  public abstract boolean isRead();
+	protected FieldInstruction(String name, String clsName, String fieldDescriptor) {
+		fname = name;
+		className = Types.getClassNameFromTypeName(clsName);
+		isReferenceField = Types.isReferenceSignature(fieldDescriptor);
+		size = Types.getTypeSize(fieldDescriptor);
+	}
 
-  public abstract FieldInfo getFieldInfo (FeatureExpr ctx);
+	public String getClassName() {
+		return className;
+	}
 
-  // that's for an instructionExecuted() context
-  public abstract ElementInfo getLastElementInfo();
+	public String getFieldName() {
+		return fname;
+	}
 
-  // that's for an executeInstruction() or choiceGeneratorSet() context
-  public abstract ElementInfo peekElementInfo (ThreadInfo ti);
+	/**
+	 * only defined in instructionExecuted() notification context
+	 */
+	public long getLastValue() {
+		if (lastValue.getValue() instanceof Long) {
+			return (Long) lastValue.getValue();
+		}
+		throw new RuntimeException(lastValue.getValue() + " not instance of Long");
+	}
 
-  // pop operands for a 1 slot value
-  protected abstract void popOperands1( FeatureExpr ctx, StackFrame frame);
+	public abstract boolean isRead();
 
-  // pop operands for a 2 slot value
-  protected abstract void popOperands2( FeatureExpr ctx, StackFrame frame);
+	public abstract FieldInfo getFieldInfo(FeatureExpr ctx);
 
-  protected abstract boolean isSkippedFinalField (ElementInfo ei);
+	// that's for an instructionExecuted() context
+	public abstract ElementInfo getLastElementInfo();
 
-  
-  public boolean isReferenceField () {
-    return isReferenceField;
-  }
+	// that's for an executeInstruction() or choiceGeneratorSet() context
+	public abstract ElementInfo peekElementInfo(ThreadInfo ti);
 
-  protected Conditional<Instruction> put1 (FeatureExpr ctx, ThreadInfo ti, StackFrame frame, ElementInfo eiFieldOwner, boolean initStatic) {
-    Object attr = frame.getOperandAttr(ctx);
-    Conditional<Integer> val;
-    Conditional<Integer> field = eiFieldOwner.get1SlotField(fi);
-	if (initStatic) {
-    	/*
-    	 * static fields need to be initialized for all contexts
-    	 * because the static class objects are only initialized once 
-    	 */
-    	val = frame.peek(ctx);
-    } else {
-    	if (Conditional.isTautology(ctx)) {
-    		val = frame.peek(ctx);
-    	} else {
-    		val = ChoiceFactory.create(ctx, frame.peek(ctx), field).simplify();
-    	}
-    }
-    lastValue = val;
+	// pop operands for a 1 slot value
+	protected abstract void popOperands1(FeatureExpr ctx, StackFrame frame);
 
-    // we only have to modify the field owner if the values have changed, and only
-    // if this is a modified reference do we might have to potential exposure re-enter
-    if ((!field.simplify(ctx).equals(val.simplify(ctx))) || (eiFieldOwner.getFieldAttr(fi) != attr)) {
-    	ti.coverage.coverField(ctx, eiFieldOwner, val, field, frame, ti, fi);
-      eiFieldOwner = eiFieldOwner.getModifiableInstance();
-      
-      if (fi.isReference()) {
-    	  if (initStatic) {
-    		  eiFieldOwner.setReferenceField(FeatureExprFactory.True(), fi, val);
-    	  } else {
-    		  eiFieldOwner.setReferenceField(ctx, fi, val);
-    	  }
-        
-        // this is kind of policy, but it seems more natural to overwrite instead of accumulate
-        // (if we want to accumulate, this has to happen in ElementInfo/Fields)
-        eiFieldOwner.setFieldAttr(fi, attr);
+	// pop operands for a 2 slot value
+	protected abstract void popOperands2(FeatureExpr ctx, StackFrame frame);
 
-        // check if this might expose a previously unshared object
-        if (ti.useBreakOnExposure()) {
-          if (ti.isFirstStepInsn()) { // no use to break for exposure if we didn't break on shared field access
-            ElementInfo eiFieldValue = ti.getElementInfo(val.simplify(ctx).getValue());
-            // note there is no point re-exposing if the object already got exposed along the same path. In fact,
-            // without state matching this can cause endless-loops
-            if ((eiFieldValue != null) && !eiFieldValue.isExposed()
-                    && !eiFieldValue.isReferencedBySameThreads(eiFieldOwner)) {
-              
-              // this is a potential exposure point, re-enter AFTER having done the assignment,
-              // but BEFORE popping the operand stack
-              // Note this doesn't make the referenced object shared yet, it just makes it accessible through an already shared
-              // object (the field owner) and it might become shared in the future
+	protected abstract boolean isSkippedFinalField(ElementInfo ei);
 
-              eiFieldValue.setExposed( ti, eiFieldOwner);
-                            
-              if (createAndSetSharedObjectExposureCG(eiFieldValue, ti)) {
-                return new One<Instruction>(this);
-              }
-            }
-          }
-        }
+	public boolean isReferenceField() {
+		return isReferenceField;
+	}
 
-      } else { // not a reference, nothing exposed
-        eiFieldOwner.set1SlotField(ctx, fi, val);
-        eiFieldOwner.setFieldAttr(fi, attr); // see above about overwrite vs. accumulation
-      }
-    }
-    
-    frame = ti.getModifiableTopFrame(); // now we have to modify it
-    popOperands1(ctx, frame); // .. val => ..
-    return getNext(ctx, ti);
-  }
+	protected Conditional<Instruction> put1(FeatureExpr ctx, ThreadInfo ti, StackFrame frame, ElementInfo eiFieldOwner,
+			boolean initStatic) {
+		Object attr = frame.getOperandAttr(ctx);
+		Conditional<Integer> val;
+		Conditional<Integer> field = eiFieldOwner.get1SlotField(fi);
+		if (initStatic) {
+			/*
+			 * static fields need to be initialized for all contexts because the
+			 * static class objects are only initialized once
+			 */
+			val = frame.peek(ctx);
+		} else {
+			if (Conditional.isTautology(ctx)) {
+				val = frame.peek(ctx);
+			} else {
+				val = ChoiceFactory.create(ctx, frame.peek(ctx), field).simplify();
+			}
+		}
 
-protected Conditional<Instruction> put2 (FeatureExpr ctx, ThreadInfo ti, StackFrame frame, ElementInfo eiFieldOwner) {
-    Object attr = frame.getLongOperandAttr(ctx);
-    Conditional<Long> val = frame.peekLong(ctx);
-    lastValue = val;
-    Conditional<Long> field = eiFieldOwner.get2SlotField(fi);
-	if ((!field.simplify(ctx).equals(val)) || (eiFieldOwner.getFieldAttr(fi) != attr)) {
-    	ti.coverage.coverField(ctx, eiFieldOwner, val, field, frame, ti, fi);
-      eiFieldOwner = eiFieldOwner.getModifiableInstance();
-      eiFieldOwner.set2SlotField(ctx, fi, val);
-      
-      // see put1() reg. overwrite vs. accumulation
-      eiFieldOwner.setFieldAttr(fi, attr);
-    }
-    
-    frame = ti.getModifiableTopFrame(); // now we have to modify it    
-    popOperands2(ctx, frame); // .. highVal,lowVal => ..
-    return getNext(ctx, ti);
-  }
-  
-  protected Conditional<Instruction> put (FeatureExpr ctx, ThreadInfo ti, StackFrame frame, ElementInfo eiFieldOwner, boolean initStatic) {
-    if (size == 1) {
-      return put1(ctx, ti, frame, eiFieldOwner, initStatic);
-    } else {
-      return put2(ctx, ti, frame, eiFieldOwner);
-    }
-  }
-  
-  public int getFieldSize() {
-    return size;
-  }
+		List<HighlightingInfo> highlightingInfoList = null;
+		FeatureExpr prevCtx = FeatureExprFactory.False();
+		if (highlightingInfoMap.containsKey(frame.getClassInfo().getName())) {
+			Map<Integer, List<HighlightingInfo>> getHighlightingInfoMap = highlightingInfoMap
+					.get(frame.getClassInfo().getName());
+			highlightingInfoList = getHighlightingInfoMap.get(fi.getFieldIndex());
 
-  public String getId(ElementInfo ei) {
-    // <2do> - OUTCH, should be optimized (so far, it's only called during reporting)
-    if (ei != null){
-      return (ei.toString() + '.' + fname);
-    } else {
-      return ("?." + fname);
-    }
-  }
+			if (highlightingInfoList != null) {
+				HighlightingInfo lastInfoObj = highlightingInfoList.get(highlightingInfoList.size() - 1);
+				prevCtx = lastInfoObj.getCtx();
+			} else {
+				highlightingInfoList = new ArrayList<HighlightingInfo>();
+				getHighlightingInfoMap.put(fi.getFieldIndex(), highlightingInfoList);
+			}
+		} else {
+			highlightingInfoList = new ArrayList<HighlightingInfo>();
+			Map<Integer, List<HighlightingInfo>> addNewInfoMap = new HashMap<Integer, List<HighlightingInfo>>();
+			addNewInfoMap.put(fi.getFieldIndex(), highlightingInfoList);
+			highlightingInfoMap.put(frame.getClassInfo().getName(), addNewInfoMap);
+		}
 
-  public String getVariableId () {
-    if (varId == null) {
-      varId = className + '.' + fname;
-    }
-    return varId;
-  }
+		if (!ctx.equivalentTo(prevCtx)) {
+			HighlightingInfo addNewInfoObj = new HighlightingInfo(ctx,
+					frame.getPrevious().getPC().simplify(ctx).getValue().getLineNumber(), frame.getPrevious().getClassInfo().getName());
+			highlightingInfoList.add(addNewInfoObj);
+			// System.out.println("ctx: " + Conditional.getCTXString(ctx) + "
+			// newvalue:" + val + " oldValue:" + field + " "
+			// + eiFieldOwner + " " + fi.toString());
+			ti.coverage.coverWriteField(ctx, val, field, eiFieldOwner, fi, highlightingInfoMap, frame);
+		}
 
-  /**
-   * is this field supposed to be protected by a lock?
-   * this only gets called if on-the-fly POR is in effect
-   * 
-   * NOTE this has the side effect of setting FieldLockInfos, which
-   * in turn can be heuristic and volatile (i.e. might force an
-   * object to stay in memory just because we have to detect
-   * subsequent lock assumption violations
-   */
-  protected boolean isLockProtected (ThreadInfo ti, ElementInfo ei) {
+		lastValue = val;
 
-    FieldInfo fi = getFieldInfo(null); // so that we make sure it's computed
-    FieldLockInfo flInfo = ei.getFieldLockInfo(fi);
-    FieldLockInfo flInfoNext;
-        
-    if (flInfo == null) {
-      flInfoNext = fliFactory.createFieldLockInfo(ti, ei, fi);
-      ei.setFieldLockInfo(fi, flInfoNext);
-      
-    }  else {
-      flInfoNext = flInfo.checkProtection(ti,ei,fi);
-      if (flInfo != flInfoNext) {
-        ei.setFieldLockInfo(fi, flInfoNext);
-      }
-    }
-    
-    return flInfoNext.isProtected();
-  }
-  
-  /**
-   * do a little bytecode pattern analysis on the fly, to find out if a
-   * GETFIELD or GETSTATIC is just part of a "..synchronized (obj) {..} .."
-   * pattern, which usually translates into some
-   *   ...
-   *   getfield
-   *   dup
-   *   [astore]
-   *   monitorenter
-   *   ...
-   *
-   *   pattern. If it does, there is no need to break the transition.
-   *
-   *   <2do> We might want to extend this in the future to also cover sync on
-   *   local vars, like "Object o = myField; synchronized(o){..}..", but then
-   *   the check becomes more expensive since we get interspersed aload/astore
-   *   insns, and some of the locals could be used outside the sync block. Not
-   *   sure if it buys much on the bottom line
-   *   
-   *   <2do> does this rely on javac code patterns? The dup/astore could
-   *   lead to subsequent use of the object reference w/o corresponding get/putfield
-   *   insns (if it's not a volatile), but this access would be either a call
-   *   or a get/putfield on a share object, i.e. would be checked separately 
-   */
-  protected boolean isMonitorEnterPrologue () {
-    Instruction[] code = mi.getInstructions();
-    int off = insnIndex+1;
+		// we only have to modify the field owner if the values have changed,
+		// and only
+		// if this is a modified reference do we might have to potential
+		// exposure re-enter
+		if ((!field.simplify(ctx).equals(val.simplify(ctx))) || (eiFieldOwner.getFieldAttr(fi) != attr)) {
+			ti.coverage.coverField(ctx, eiFieldOwner, val, field, frame, ti, fi);
+			eiFieldOwner = eiFieldOwner.getModifiableInstance();
 
-    if (off < code.length-3) {
-      // we don't reach out further than 3 instructions
-      if (code[off] instanceof DUP) {
-        off++;
+			if (fi.isReference()) {
+				if (initStatic) {
+					eiFieldOwner.setReferenceField(FeatureExprFactory.True(), fi, val);
+				} else {
+					eiFieldOwner.setReferenceField(ctx, fi, val);
+				}
 
-        if (code[off] instanceof ASTORE) {
-          off++;
-        }
+				// this is kind of policy, but it seems more natural to
+				// overwrite instead of accumulate
+				// (if we want to accumulate, this has to happen in
+				// ElementInfo/Fields)
+				eiFieldOwner.setFieldAttr(fi, attr);
 
-        if (code[off] instanceof MONITORENTER) {
-          return true;
-        }
-      }
-    }
-    
-    return false; // if in doubt, we break the transition
-  }
+				// check if this might expose a previously unshared object
+				if (ti.useBreakOnExposure()) {
+					if (ti.isFirstStepInsn()) { // no use to break for exposure
+												// if we didn't break on shared
+												// field access
+						ElementInfo eiFieldValue = ti.getElementInfo(val.simplify(ctx).getValue());
+						// note there is no point re-exposing if the object
+						// already got exposed along the same path. In fact,
+						// without state matching this can cause endless-loops
+						if ((eiFieldValue != null) && !eiFieldValue.isExposed()
+								&& !eiFieldValue.isReferencedBySameThreads(eiFieldOwner)) {
 
-  
-  protected boolean createAndSetSharedFieldAccessCG ( ElementInfo eiFieldOwner, ThreadInfo ti) {
-    VM vm = ti.getVM();
-    ChoiceGenerator<?> cg = vm.getSchedulerFactory().createSharedFieldAccessCG(eiFieldOwner, ti);
-    if (cg != null) {
-      if (vm.setNextChoiceGenerator(cg)){
-        ti.skipInstructionLogging(); // <2do> Hmm, might be more confusing not to see it
-        return true;
-      }
-    }
+							// this is a potential exposure point, re-enter
+							// AFTER having done the assignment,
+							// but BEFORE popping the operand stack
+							// Note this doesn't make the referenced object
+							// shared yet, it just makes it accessible through
+							// an already shared
+							// object (the field owner) and it might become
+							// shared in the future
 
-    return false;
-  }
+							eiFieldValue.setExposed(ti, eiFieldOwner);
 
-  protected boolean createAndSetSharedObjectExposureCG ( ElementInfo eiFieldValue, ThreadInfo ti) {
-    VM vm = ti.getVM();
-    ChoiceGenerator<?> cg = vm.getSchedulerFactory().createSharedObjectExposureCG(eiFieldValue, ti);
-    if (cg != null) {
-      if (vm.setNextChoiceGenerator(cg)){
-        ti.skipInstructionLogging(); // <2do> Hmm, might be more confusing not to see it
-        return true;
-      }
-    }
+							if (createAndSetSharedObjectExposureCG(eiFieldValue, ti)) {
+								return new One<Instruction>(this);
+							}
+						}
+					}
+				}
 
-    return false;
-  }
-  
-  
-  /**
-   * for explicit construction
-   */
-  public void setField(String fname, String fclsName) {
-    this.fname = fname;
-    this.className = fclsName;
-    if (fclsName.equals("long") || fclsName.equals("double")) {
-      this.size = 2;
-      this.isReferenceField = false;
-    } else {
-      this.size = 1;
-      if (fclsName.equals("boolean") || fclsName.equals("byte") || fclsName.equals("char") || fclsName.equals("short") || fclsName.equals("int")) {
-        this.isReferenceField = false;
-      } else {
-        this.isReferenceField = true;
-      }
-    }
-  }
-  
-  public void accept(InstructionVisitor insVisitor) {
-	  insVisitor.visit(this);
-  }
+			} else { // not a reference, nothing exposed
+				eiFieldOwner.set1SlotField(ctx, fi, val);
+				eiFieldOwner.setFieldAttr(fi, attr); // see above about
+														// overwrite vs.
+														// accumulation
+			}
+		}
+
+		frame = ti.getModifiableTopFrame(); // now we have to modify it
+		popOperands1(ctx, frame); // .. val => ..
+		return getNext(ctx, ti);
+	}
+
+	protected Conditional<Instruction> put2(FeatureExpr ctx, ThreadInfo ti, StackFrame frame,
+			ElementInfo eiFieldOwner) {
+		Object attr = frame.getLongOperandAttr(ctx);
+		Conditional<Long> val = frame.peekLong(ctx);
+		lastValue = val;
+		Conditional<Long> field = eiFieldOwner.get2SlotField(fi);
+		if ((!field.simplify(ctx).equals(val)) || (eiFieldOwner.getFieldAttr(fi) != attr)) {
+			ti.coverage.coverField(ctx, eiFieldOwner, val, field, frame, ti, fi);
+			eiFieldOwner = eiFieldOwner.getModifiableInstance();
+			eiFieldOwner.set2SlotField(ctx, fi, val);
+
+			// see put1() reg. overwrite vs. accumulation
+			eiFieldOwner.setFieldAttr(fi, attr);
+		}
+
+		frame = ti.getModifiableTopFrame(); // now we have to modify it
+		popOperands2(ctx, frame); // .. highVal,lowVal => ..
+		return getNext(ctx, ti);
+	}
+
+	protected Conditional<Instruction> put(FeatureExpr ctx, ThreadInfo ti, StackFrame frame, ElementInfo eiFieldOwner,
+			boolean initStatic) {
+		if (size == 1) {
+			return put1(ctx, ti, frame, eiFieldOwner, initStatic);
+		} else {
+			return put2(ctx, ti, frame, eiFieldOwner);
+		}
+	}
+
+	public int getFieldSize() {
+		return size;
+	}
+
+	public String getId(ElementInfo ei) {
+		// <2do> - OUTCH, should be optimized (so far, it's only called during
+		// reporting)
+		if (ei != null) {
+			return (ei.toString() + '.' + fname);
+		} else {
+			return ("?." + fname);
+		}
+	}
+
+	public String getVariableId() {
+		if (varId == null) {
+			varId = className + '.' + fname;
+		}
+		return varId;
+	}
+
+	/**
+	 * is this field supposed to be protected by a lock? this only gets called
+	 * if on-the-fly POR is in effect
+	 * 
+	 * NOTE this has the side effect of setting FieldLockInfos, which in turn
+	 * can be heuristic and volatile (i.e. might force an object to stay in
+	 * memory just because we have to detect subsequent lock assumption
+	 * violations
+	 */
+	protected boolean isLockProtected(ThreadInfo ti, ElementInfo ei) {
+
+		FieldInfo fi = getFieldInfo(null); // so that we make sure it's computed
+		FieldLockInfo flInfo = ei.getFieldLockInfo(fi);
+		FieldLockInfo flInfoNext;
+
+		if (flInfo == null) {
+			flInfoNext = fliFactory.createFieldLockInfo(ti, ei, fi);
+			ei.setFieldLockInfo(fi, flInfoNext);
+
+		} else {
+			flInfoNext = flInfo.checkProtection(ti, ei, fi);
+			if (flInfo != flInfoNext) {
+				ei.setFieldLockInfo(fi, flInfoNext);
+			}
+		}
+
+		return flInfoNext.isProtected();
+	}
+
+	/**
+	 * do a little bytecode pattern analysis on the fly, to find out if a
+	 * GETFIELD or GETSTATIC is just part of a "..synchronized (obj) {..} .."
+	 * pattern, which usually translates into some ... getfield dup [astore]
+	 * monitorenter ...
+	 *
+	 * pattern. If it does, there is no need to break the transition.
+	 *
+	 * <2do> We might want to extend this in the future to also cover sync on
+	 * local vars, like "Object o = myField; synchronized(o){..}..", but then
+	 * the check becomes more expensive since we get interspersed aload/astore
+	 * insns, and some of the locals could be used outside the sync block. Not
+	 * sure if it buys much on the bottom line
+	 * 
+	 * <2do> does this rely on javac code patterns? The dup/astore could lead to
+	 * subsequent use of the object reference w/o corresponding get/putfield
+	 * insns (if it's not a volatile), but this access would be either a call or
+	 * a get/putfield on a share object, i.e. would be checked separately
+	 */
+	protected boolean isMonitorEnterPrologue() {
+		Instruction[] code = mi.getInstructions();
+		int off = insnIndex + 1;
+
+		if (off < code.length - 3) {
+			// we don't reach out further than 3 instructions
+			if (code[off] instanceof DUP) {
+				off++;
+
+				if (code[off] instanceof ASTORE) {
+					off++;
+				}
+
+				if (code[off] instanceof MONITORENTER) {
+					return true;
+				}
+			}
+		}
+
+		return false; // if in doubt, we break the transition
+	}
+
+	protected boolean createAndSetSharedFieldAccessCG(ElementInfo eiFieldOwner, ThreadInfo ti) {
+		VM vm = ti.getVM();
+		ChoiceGenerator<?> cg = vm.getSchedulerFactory().createSharedFieldAccessCG(eiFieldOwner, ti);
+		if (cg != null) {
+			if (vm.setNextChoiceGenerator(cg)) {
+				ti.skipInstructionLogging(); // <2do> Hmm, might be more
+												// confusing not to see it
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	protected boolean createAndSetSharedObjectExposureCG(ElementInfo eiFieldValue, ThreadInfo ti) {
+		VM vm = ti.getVM();
+		ChoiceGenerator<?> cg = vm.getSchedulerFactory().createSharedObjectExposureCG(eiFieldValue, ti);
+		if (cg != null) {
+			if (vm.setNextChoiceGenerator(cg)) {
+				ti.skipInstructionLogging(); // <2do> Hmm, might be more
+												// confusing not to see it
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * for explicit construction
+	 */
+	public void setField(String fname, String fclsName) {
+		this.fname = fname;
+		this.className = fclsName;
+		if (fclsName.equals("long") || fclsName.equals("double")) {
+			this.size = 2;
+			this.isReferenceField = false;
+		} else {
+			this.size = 1;
+			if (fclsName.equals("boolean") || fclsName.equals("byte") || fclsName.equals("char")
+					|| fclsName.equals("short") || fclsName.equals("int")) {
+				this.isReferenceField = false;
+			} else {
+				this.isReferenceField = true;
+			}
+		}
+	}
+
+	public void accept(InstructionVisitor insVisitor) {
+		insVisitor.visit(this);
+	}
 
 }
-
-
-
-
-
-
-
-

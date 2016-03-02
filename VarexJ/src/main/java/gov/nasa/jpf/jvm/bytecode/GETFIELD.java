@@ -18,9 +18,14 @@
 //
 package gov.nasa.jpf.jvm.bytecode;
 
+import java.util.List;
+import java.util.Map;
+
 import cmu.conditional.BiFunction;
+import cmu.conditional.ChoiceFactory;
 import cmu.conditional.Conditional;
 import cmu.conditional.One;
+import cmu.utils.HighlightingInfo;
 import de.fosd.typechef.featureexpr.FeatureExpr;
 import de.fosd.typechef.featureexpr.FeatureExprFactory;
 import gov.nasa.jpf.vm.ElementInfo;
@@ -87,7 +92,13 @@ public class GETFIELD extends InstanceFieldInstruction {
 
 				// We could encapsulate the push in ElementInfo, but not the GET, so we keep it at a similiar level
 				if (fi.getStorageSize() == 1) { // 1 slotter
+					Conditional<Integer> val;
 					Conditional<Integer> ival = ei.get1SlotField(fi);
+					if(Conditional.isTautology(ctx)){
+						val = frame.peek(ctx);
+					}else{
+						val = ChoiceFactory.create(ctx, frame.peek(ctx), ival).simplify();
+					}
 					lastValue = ival;
 
 					if (fi.isReference()) {
@@ -99,6 +110,21 @@ public class GETFIELD extends InstanceFieldInstruction {
 
 					if (attr != null) {
 						frame.setOperandAttr(attr);
+					}
+					
+					FeatureExpr prevCtx = FeatureExprFactory.False();
+					Map<Integer, List<HighlightingInfo>> getHighlightingInfoMap = highlightingInfoMap.get(fi.getClassInfo().getName());
+					if(getHighlightingInfoMap != null){
+						List<HighlightingInfo> highlightingInfoList = getHighlightingInfoMap.get(fi.getFieldIndex());
+						if(highlightingInfoList != null){
+							HighlightingInfo lastInfoObj = highlightingInfoList.get(highlightingInfoList.size()-1);
+							prevCtx = lastInfoObj.getCtx();
+						}
+					}
+//					
+					if(!ctx.equivalentTo(prevCtx)){
+//						System.out.println("Prev: " + Conditional.getCTXString(prevCtx) + " Curr: " + Conditional.getCTXString(ctx) + " oldValue: " + val + " newvalue: " + ival + " Field: " + fi.toString());
+						ti.coverage.coverReadField(ctx, ival, val, prevCtx, fi, frame, highlightingInfoMap);
 					}
 
 				} else { // 2 slotter
