@@ -58,13 +58,14 @@ public class CoverageClass {
 					index = li.getLocalVariableIndex();
 					if (index != -1) {
 						oldLocal = ti.getTopFrame().stack.getLocal(index);
-						localSize = ti.getTopFrame().stack.getLocal(ti.getTopFrame().stack.getCtx(), index).toMap().size();
+						localSize = ti.getTopFrame().stack.getLocal(ti.getTopFrame().stack.getCtx(), index).toMap()
+								.size();
 					}
 				}
 			}
 		}
 
-		if (JPF.SELECTED_COVERAGE_TYPE == JPF.COVERAGE_TYPE.time) {																	
+		if (JPF.SELECTED_COVERAGE_TYPE == JPF.COVERAGE_TYPE.time) {
 			time = System.nanoTime();
 		}
 	}
@@ -85,7 +86,8 @@ public class CoverageClass {
 				}
 				if (index != -1) {
 					newLocal = ti.getTopFrame().stack.getLocal(index);
-					newLocalSize = ti.getTopFrame().stack.getLocal(ti.getTopFrame().stack.getCtx(), index).toMap().size();
+					newLocalSize = ti.getTopFrame().stack.getLocal(ti.getTopFrame().stack.getCtx(), index).toMap()
+							.size();
 				}
 			}
 			performCoverage(i, ctx, time, localSize, oldLocal, newLocalSize, newLocal);
@@ -103,7 +105,8 @@ public class CoverageClass {
 	 * @param oldLocal
 	 * @param newLocal
 	 */
-	private void performCoverage(Instruction instruction, FeatureExpr ctx, long time, int oldLocalSize, Object oldLocal, int newLocalSize, Object newLocal) {
+	private void performCoverage(Instruction instruction, FeatureExpr ctx, long time, int oldLocalSize, Object oldLocal,
+			int newLocalSize, Object newLocal) {
 		MethodInfo methodInfo = instruction.getMethodInfo();
 		if (methodInfo != null) {
 			ClassInfo classInfo = methodInfo.getClassInfo();
@@ -163,14 +166,15 @@ public class CoverageClass {
 				interaction.setInteraction((int) (time / modifier));
 			}
 		} else {
-			Map<Instruction, LinkedList<Long>> values = new TreeMap<Instruction, LinkedList<Long>>(new Comparator<Instruction>() {
+			Map<Instruction, LinkedList<Long>> values = new TreeMap<Instruction, LinkedList<Long>>(
+					new Comparator<Instruction>() {
 
-				@Override
-				public int compare(Instruction o1, Instruction o2) {
-					return o1.insnIndex - o2.insnIndex;
-				}
+						@Override
+						public int compare(Instruction o1, Instruction o2) {
+							return o1.insnIndex - o2.insnIndex;
+						}
 
-			}) {
+					}) {
 				private static final long serialVersionUID = 1L;
 
 				@Override
@@ -269,18 +273,22 @@ public class CoverageClass {
 	}
 
 	private void coverLocal(Instruction instruction, String file) {
-		JPF.COVERAGE.setLineCovered(file, instruction.getLineNumber(), ti.getTopFrame().stack.getLocalWidth(), ti.getTopFrame().stack.getMaxLocal());
+		JPF.COVERAGE.setLineCovered(file, instruction.getLineNumber(), ti.getTopFrame().stack.getLocalWidth(),
+				ti.getTopFrame().stack.getMaxLocal());
 	}
 
 	private void coverStack(Instruction instruction, FeatureExpr ctx, String file) {
-		JPF.COVERAGE.setLineCovered(file, instruction.getLineNumber(), ti.getTopFrame().stack.getStackWidth(), Conditional.getCTXString(ctx));
+		JPF.COVERAGE.setLineCovered(file, instruction.getLineNumber(), ti.getTopFrame().stack.getStackWidth(),
+				Conditional.getCTXString(ctx));
 	}
 
 	private void coverFeature(Instruction instruction, FeatureExpr ctx, String file) {
-		JPF.COVERAGE.setLineCovered(file, instruction.getLineNumber(), ctx.collectDistinctFeatures().size(), Conditional.getCTXString(ctx));
+		JPF.COVERAGE.setLineCovered(file, instruction.getLineNumber(), ctx.collectDistinctFeatures().size(),
+				Conditional.getCTXString(ctx));
 	}
 
-	private void coverInteraction(int newLocalSize, int oldLocalSize, Instruction instruction, FeatureExpr ctx, Object newLocal) {
+	private void coverInteraction(int newLocalSize, int oldLocalSize, Instruction instruction, FeatureExpr ctx,
+			Object newLocal) {
 		String localVariableName = "?";
 
 		int localInteractionChange = newLocalSize - oldLocalSize;
@@ -292,7 +300,8 @@ public class CoverageClass {
 			if (prev != null) {
 				if (prev.getLocalVarInfo() != lv) {
 					// previous value belongs to another variable
-					localInteractionChange = ti.getTopFrame().stack.getLocal(ti.getTopFrame().stack.getCtx(), ((LocalVariableInstruction) instruction).getLocalVariableIndex()).toMap().size() - 1;
+					localInteractionChange = ti.getTopFrame().stack.getLocal(ti.getTopFrame().stack.getCtx(),
+							((LocalVariableInstruction) instruction).getLocalVariableIndex()).toMap().size() - 1;
 					if (localInteractionChange != 0) {
 						String content = localVariableName + " (" + Conditional.getCTXString(ctx) + "):\n";
 						content += ti.getTopFrame().trace(ctx) + "\n";
@@ -330,7 +339,8 @@ public class CoverageClass {
 		Instruction prev = instruction.getPrev();
 		while (prev != null) {
 			if (prev instanceof LocalVariableInstruction) {
-				if (((LocalVariableInstruction) prev).getLocalVariableIndex() == ((LocalVariableInstruction) instruction).getLocalVariableIndex()) {
+				if (((LocalVariableInstruction) prev)
+						.getLocalVariableIndex() == ((LocalVariableInstruction) instruction).getLocalVariableIndex()) {
 					return prev;
 				}
 			}
@@ -339,25 +349,28 @@ public class CoverageClass {
 		return instruction;
 	}
 
-	private void coverReadInteraction(int newLocalSize, int oldLocalSize, Instruction instruction, FeatureExpr ctx, Object newLocal, String file) {
-		
+	private void coverReadInteraction(int newLocalSize, int oldLocalSize, Instruction instruction, FeatureExpr ctx,
+			Object newLocal, String file) {
+
 		Interaction interaction = JPF.COVERAGE.getCoverage(file, instruction.getLineNumber());
 		if (interaction != null) {
-//			System.out.println(interaction.toString());
+			// System.out.println(interaction.toString());
 		}
 
 	}
-	
-	private void coverWriteInteraction(int newLocalSize, int oldLocalSize, Instruction instruction, FeatureExpr ctx, Object newLocal, String file) {
-		
+
+	private void coverWriteInteraction(int newLocalSize, int oldLocalSize, Instruction instruction, FeatureExpr ctx,
+			Object newLocal, String file) {
+
 		Interaction interaction = JPF.COVERAGE.getCoverage(file, instruction.getLineNumber());
 		if (interaction != null) {
-//			System.out.println(interaction.toString());
+			// System.out.println(interaction.toString());
 		}
 
 	}
-	
-	public void coverField(FeatureExpr ctx, ElementInfo eiFieldOwner, Conditional<?> val, Conditional<?> oldValue, StackFrame frame, ThreadInfo ti, FieldInfo fi) {
+
+	public void coverField(FeatureExpr ctx, ElementInfo eiFieldOwner, Conditional<?> val, Conditional<?> oldValue,
+			StackFrame frame, ThreadInfo ti, FieldInfo fi) {
 		if (JPF.COVERAGE != null) {
 			if (JPF.SELECTED_COVERAGE_TYPE == JPF.COVERAGE_TYPE.interaction) {
 				if (val.size() - oldValue.size() != 0) {
@@ -389,17 +402,19 @@ public class CoverageClass {
 			}
 		}
 	}
-	
-	public void coverWriteField(FeatureExpr ctx, Conditional<?> val, Conditional<?> field, ElementInfo eiFieldOwner, FieldInfo fi, Map<String, Map<Integer, List<HighlightingInfo>>> highlightingInfoMap, StackFrame frame) {
-		if(JPF.COVERAGE != null){
-			if(JPF.SELECTED_COVERAGE_TYPE == JPF.COVERAGE_TYPE.writeInteraction){
+
+	public void coverWriteField(FeatureExpr ctx, Conditional<?> val, Conditional<?> field, ElementInfo eiFieldOwner,
+			FieldInfo fi, Map<String, Map<Integer, List<HighlightingInfo>>> highlightingInfoMap, StackFrame frame, String uniqueObjKey) {
+		if (JPF.COVERAGE != null) {
+			if (JPF.SELECTED_COVERAGE_TYPE == JPF.COVERAGE_TYPE.writeInteraction) {
 				if (val.size() - field.size() != 0) {
 					StringBuilder text = new StringBuilder();
 					text.append("Value of (" + fi.getName() + ") is changed under different contexts: ");
-//					text.append("\n(");
-					Map<Integer, List<HighlightingInfo>> infoMap = highlightingInfoMap.get(frame.getClassInfo().getName());
+					// text.append("\n(");
+					Map<Integer, List<HighlightingInfo>> infoMap = highlightingInfoMap
+							.get(uniqueObjKey);
 					List<HighlightingInfo> prevCtxDetails = infoMap.get(fi.getFieldIndex());
-					if(prevCtxDetails != null){
+					if (prevCtxDetails != null) {
 						for (HighlightingInfo info : prevCtxDetails) {
 							text.append("\n(");
 							text.append(Conditional.getCTXString(info.getCtx()));
@@ -407,21 +422,23 @@ public class CoverageClass {
 							text.append("in class " + info.getClassName() + " at line number: " + info.getLineNumber());
 						}
 					}
-//					text.append(")");
-					
+					// text.append(")");
+
 					CoverageLogger.logInteraction(frame, val.size() - field.size(), text, ctx);
 					CoverageLogger.logInteraction(frame.getPrevious(), val.size() - field.size(), text, ctx);
-					CoverageLogger.logInteraction(frame.getPrevious().getPrevious(), val.size() - field.size(), text, ctx);
-				
+					CoverageLogger.logInteraction(frame.getPrevious().getPrevious(), val.size() - field.size(), text,
+							ctx);
+
 				}
 			}
 		}
-		
+
 	}
-	
-	public void coverReadField(FeatureExpr ctx, Conditional<?> val, Conditional<?> field, FeatureExpr preCtx, FieldInfo fi, StackFrame frame, Map<String, Map<Integer, List<HighlightingInfo>>> highlightingInfoMap) {
-		if(JPF.COVERAGE != null){
-			if(JPF.SELECTED_COVERAGE_TYPE == JPF.COVERAGE_TYPE.readInteraction){
+
+	public void coverReadField(FeatureExpr ctx, Conditional<?> val, Conditional<?> field, FeatureExpr preCtx,
+			FieldInfo fi, StackFrame frame, Map<String, Map<Integer, List<HighlightingInfo>>> highlightingInfoMap) {
+		if (JPF.COVERAGE != null) {
+			if (JPF.SELECTED_COVERAGE_TYPE == JPF.COVERAGE_TYPE.readInteraction) {
 				if (val.size() - field.size() != 0) {
 					StringBuilder text = new StringBuilder();
 					text.append("Value of (" + fi.getName() + ") is read under context ");
@@ -430,27 +447,27 @@ public class CoverageClass {
 					text.append("), but it was changed under contexts: ");
 					text.append("\n");
 					Map<Integer, List<HighlightingInfo>> infoMap = highlightingInfoMap.get(fi.getClassInfo().getName());
-					if(infoMap != null){
-					List<HighlightingInfo> prevCtxDetails = infoMap.get(fi.getFieldIndex());
-					if(prevCtxDetails != null){
-						for (HighlightingInfo info : prevCtxDetails) {
-							text.append("(");
-							text.append(Conditional.getCTXString(info.getCtx()));
-							text.append(")");
-							text.append(" in class " + info.getClassName() + " at line no: " + info.getLineNumber());
-							text.append("\n");
+					if (infoMap != null) {
+						List<HighlightingInfo> prevCtxDetails = infoMap.get(fi.getFieldIndex());
+						if (prevCtxDetails != null) {
+							for (HighlightingInfo info : prevCtxDetails) {
+								text.append("(");
+								text.append(Conditional.getCTXString(info.getCtx()));
+								text.append(")");
+								text.append(
+										" in class " + info.getClassName() + " at line no: " + info.getLineNumber());
+								text.append("\n");
+							}
 						}
 					}
-					}
-//					text.append(frame.trace(ctx));
-//					text.append("\n");
-//					text.append(": ");
-					
-					
+					// text.append(frame.trace(ctx));
+					// text.append("\n");
+					// text.append(": ");
+
 					CoverageLogger.logInteraction(frame, val.size() - field.size(), text, ctx);
-				
+
 				}
+			}
 		}
-	}
 	}
 }
