@@ -403,19 +403,19 @@ public class CoverageClass {
 		}
 	}
 
-	public void coverWriteField(FeatureExpr ctx, Conditional<?> val, Conditional<?> field, ElementInfo eiFieldOwner,
-			FieldInfo fi, Map<ObjectInfo, Map<Integer, List<ObjectChgInfo>>> highlightingInfoMap, StackFrame frame, ObjectInfo objectInfo) {
+	public void coverWriteField(FeatureExpr ctx, Conditional<?> val, Conditional<?> field,
+			FieldInfo fi, Map<ObjectInfo, Map<Integer, List<FieldChgInfo>>> highlightingInfoMap, StackFrame frame, ObjectInfo objectInfo) {
 		if (JPF.COVERAGE != null) {
 			if (JPF.SELECTED_COVERAGE_TYPE == JPF.COVERAGE_TYPE.writeInteraction) {
 				if (val.size() - field.size() != 0) {
 					StringBuilder text = new StringBuilder();
 					text.append("Value of (" + fi.getName() + ") is changed under different contexts: ");
 					// text.append("\n(");
-					Map<Integer, List<ObjectChgInfo>> infoMap = highlightingInfoMap
+					Map<Integer, List<FieldChgInfo>> infoMap = highlightingInfoMap
 							.get(objectInfo);
-					List<ObjectChgInfo> prevCtxDetails = infoMap.get(fi.getFieldIndex());
+					List<FieldChgInfo> prevCtxDetails = infoMap.get(fi.getFieldIndex());
 					if (prevCtxDetails != null) {
-						for (ObjectChgInfo info : prevCtxDetails) {
+						for (FieldChgInfo info : prevCtxDetails) {
 							text.append("\n(");
 							text.append(Conditional.getCTXString(info.getCtx()));
 							text.append(") ");
@@ -436,7 +436,7 @@ public class CoverageClass {
 	}
 
 	public void coverReadField(FeatureExpr ctx, Conditional<?> val, Conditional<?> field, FeatureExpr preCtx,
-			FieldInfo fi, StackFrame frame, Map<ObjectInfo, Map<Integer, List<ObjectChgInfo>>> highlightingInfoMap, ObjectInfo objectInfo) {
+			FieldInfo fi, StackFrame frame, Map<ObjectInfo, Map<Integer, List<FieldChgInfo>>> highlightingInfoMap, ObjectInfo objectInfo) {
 		if (JPF.COVERAGE != null) {
 			if (JPF.SELECTED_COVERAGE_TYPE == JPF.COVERAGE_TYPE.readInteraction) {
 				if (val.size() - field.size() != 0) {
@@ -446,11 +446,11 @@ public class CoverageClass {
 					text.append(Conditional.getCTXString(ctx));
 					text.append("), but it was changed under contexts: ");
 					text.append("\n");
-					Map<Integer, List<ObjectChgInfo>> infoMap = highlightingInfoMap.get(fi.getClassInfo().getName());
+					Map<Integer, List<FieldChgInfo>> infoMap = highlightingInfoMap.get(fi.getClassInfo().getName());
 					if (infoMap != null) {
-						List<ObjectChgInfo> prevCtxDetails = infoMap.get(fi.getFieldIndex());
+						List<FieldChgInfo> prevCtxDetails = infoMap.get(fi.getFieldIndex());
 						if (prevCtxDetails != null) {
-							for (ObjectChgInfo info : prevCtxDetails) {
+							for (FieldChgInfo info : prevCtxDetails) {
 								text.append("(");
 								text.append(Conditional.getCTXString(info.getCtx()));
 								text.append(")");

@@ -25,7 +25,7 @@ import cmu.conditional.BiFunction;
 import cmu.conditional.ChoiceFactory;
 import cmu.conditional.Conditional;
 import cmu.conditional.One;
-import cmu.utils.ObjectChgInfo;
+import cmu.utils.FieldChgInfo;
 import cmu.utils.ObjectInfo;
 import de.fosd.typechef.featureexpr.FeatureExpr;
 import de.fosd.typechef.featureexpr.FeatureExprFactory;
@@ -115,11 +115,11 @@ public class GETFIELD extends InstanceFieldInstruction {
 					
 					FeatureExpr prevCtx = FeatureExprFactory.False();
 					ObjectInfo objectInfo = new ObjectInfo(frame.getClassInfo().getName(), objRef);
-					Map<Integer, List<ObjectChgInfo>> fieldInfoMap = objectCtxChangeMap.get(objectInfo);
+					Map<Integer, List<FieldChgInfo>> fieldInfoMap = objectCtxChangeMap.get(objectInfo);
 					if(fieldInfoMap != null){
-						List<ObjectChgInfo> highlightingInfoList = fieldInfoMap.get(fi.getFieldIndex());
+						List<FieldChgInfo> highlightingInfoList = fieldInfoMap.get(fi.getFieldIndex());
 						if(highlightingInfoList != null){
-							ObjectChgInfo lastInfoObj = highlightingInfoList.get(highlightingInfoList.size()-1);
+							FieldChgInfo lastInfoObj = highlightingInfoList.get(highlightingInfoList.size()-1);
 							prevCtx = lastInfoObj.getCtx();
 						}
 					}

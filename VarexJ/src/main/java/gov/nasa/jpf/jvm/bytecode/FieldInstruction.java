@@ -26,7 +26,7 @@ import java.util.Map;
 import cmu.conditional.ChoiceFactory;
 import cmu.conditional.Conditional;
 import cmu.conditional.One;
-import cmu.utils.ObjectChgInfo;
+import cmu.utils.FieldChgInfo;
 import cmu.utils.ObjectInfo;
 import de.fosd.typechef.featureexpr.FeatureExpr;
 import de.fosd.typechef.featureexpr.FeatureExprFactory;
@@ -59,7 +59,7 @@ public abstract class FieldInstruction extends JVMInstruction implements Variabl
 	static boolean skipConstructedFinals; // do we ignore final fields for POR
 											// after the object's constructor
 											// has finished?
-	protected static Map<ObjectInfo, Map<Integer, List<ObjectChgInfo>>> objectCtxChangeMap = new HashMap<ObjectInfo, Map<Integer, List<ObjectChgInfo>>>();
+	protected static Map<ObjectInfo, Map<Integer, List<FieldChgInfo>>> objectCtxChangeMap = new HashMap<ObjectInfo, Map<Integer, List<FieldChgInfo>>>();
 
 	protected String fname;
 	protected String className;
@@ -155,43 +155,41 @@ public abstract class FieldInstruction extends JVMInstruction implements Variabl
 
 		FeatureExpr prevCtx = null;
 		ObjectInfo objectInfo = new ObjectInfo(frame.getClassInfo().getName(), eiFieldOwner.getObjectRef());
-		List<ObjectChgInfo> objectChgInfoList = null;
-		Map<Integer, List<ObjectChgInfo>> fieldInfoMap = null;
+		List<FieldChgInfo> objectChgInfoList = null;
+		Map<Integer, List<FieldChgInfo>> fieldInfoMap = null;
+		
 		if (objectCtxChangeMap.containsKey(objectInfo)) {
 			fieldInfoMap = objectCtxChangeMap.get(objectInfo);
 			objectChgInfoList = fieldInfoMap.get(fi.getFieldIndex());
 
 			if (objectChgInfoList != null) {
-				ObjectChgInfo lastInfoObj = objectChgInfoList.get(objectChgInfoList.size() - 1);
+				FieldChgInfo lastInfoObj = objectChgInfoList.get(objectChgInfoList.size() - 1);
 				prevCtx = lastInfoObj.getCtx();
 			} else {
-				objectChgInfoList = new ArrayList<ObjectChgInfo>();
+				objectChgInfoList = new ArrayList<FieldChgInfo>();
 			}
 		} else {
-			objectChgInfoList = new ArrayList<ObjectChgInfo>();
-			fieldInfoMap = new HashMap<Integer, List<ObjectChgInfo>>();
-			objectChgInfoList.add(new ObjectChgInfo(ctx, frame.getPrevious().getPC().simplify(ctx).getValue().getLineNumber(), frame.getClassInfo().getName()));
+			objectChgInfoList = new ArrayList<FieldChgInfo>();
+			fieldInfoMap = new HashMap<Integer, List<FieldChgInfo>>();
+			objectChgInfoList.add(new FieldChgInfo(ctx, frame.getPrevious().getPC().simplify(ctx).getValue().getLineNumber()));
 			fieldInfoMap.put(fi.getFieldIndex(), objectChgInfoList);
 			objectCtxChangeMap.put(objectInfo, fieldInfoMap);
 		}
 
 		if (prevCtx!= null && !ctx.equivalentTo(prevCtx)) {
-			ObjectChgInfo addNewInfoObj= null;
+			FieldChgInfo addNewInfoObj= null;
 				if (fi.isStatic()) {
-					System.out.println("in static " + frame.getPC().simplify(ctx).getValue().getLineNumber());
-					addNewInfoObj = new ObjectChgInfo(ctx,
-							frame.getPC().simplify(ctx).getValue().getLineNumber(), frame.getClassInfo().getName());
+					addNewInfoObj = new FieldChgInfo(ctx,
+							frame.getPC().simplify(ctx).getValue().getLineNumber());
 					
 				} else {
-					System.out.println("non");
-					addNewInfoObj = new ObjectChgInfo(ctx,
-							frame.getPrevious().getPC().simplify(ctx).getValue().getLineNumber(),
-							frame.getPrevious().getClassInfo().getName());
+					addNewInfoObj = new FieldChgInfo(ctx,
+							frame.getPrevious().getPC().simplify(ctx).getValue().getLineNumber());
 				}
 				objectChgInfoList.add(addNewInfoObj);
 				fieldInfoMap.put(fi.getFieldIndex(), objectChgInfoList);
 				objectCtxChangeMap.put(objectInfo, fieldInfoMap);
-				ti.coverage.coverWriteField(ctx, val, field, eiFieldOwner, fi, objectCtxChangeMap, frame,
+				ti.coverage.coverWriteField(ctx, val, field, fi, objectCtxChangeMap, frame,
 						objectInfo);
 //			}
 
