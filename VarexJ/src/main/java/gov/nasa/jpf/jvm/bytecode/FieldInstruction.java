@@ -26,7 +26,8 @@ import java.util.Map;
 import cmu.conditional.ChoiceFactory;
 import cmu.conditional.Conditional;
 import cmu.conditional.One;
-import cmu.utils.HighlightingInfo;
+import cmu.utils.ObjectChgInfo;
+import cmu.utils.ObjectInfo;
 import de.fosd.typechef.featureexpr.FeatureExpr;
 import de.fosd.typechef.featureexpr.FeatureExprFactory;
 import gov.nasa.jpf.Config;
@@ -58,7 +59,7 @@ public abstract class FieldInstruction extends JVMInstruction implements Variabl
 	static boolean skipConstructedFinals; // do we ignore final fields for POR
 											// after the object's constructor
 											// has finished?
-	protected static Map<String, Map<Integer, List<HighlightingInfo>>> highlightingInfoMap = new HashMap<String, Map<Integer, List<HighlightingInfo>>>();
+	protected static Map<ObjectInfo, Map<Integer, List<ObjectChgInfo>>> objectCtxChangeMap = new HashMap<ObjectInfo, Map<Integer, List<ObjectChgInfo>>>();
 
 	protected String fname;
 	protected String className;
@@ -153,53 +154,45 @@ public abstract class FieldInstruction extends JVMInstruction implements Variabl
 		}
 
 		FeatureExpr prevCtx = null;
-		String uniqueObjKey = frame.getClassInfo().getName() + ":" + eiFieldOwner.getObjectRef();
-		List<HighlightingInfo> highlightingInfoList = null;
-		Map<Integer, List<HighlightingInfo>> fieldInfoMap = null;
-		if (highlightingInfoMap.containsKey(uniqueObjKey)) {
-//			Map<Integer, List<HighlightingInfo>> getHighlightingInfoMap = highlightingInfoMap.get(uniqueObjKey);
-			fieldInfoMap = highlightingInfoMap.get(uniqueObjKey);
-			highlightingInfoList = fieldInfoMap.get(fi.getFieldIndex());
+		ObjectInfo objectInfo = new ObjectInfo(frame.getClassInfo().getName(), eiFieldOwner.getObjectRef());
+		List<ObjectChgInfo> objectChgInfoList = null;
+		Map<Integer, List<ObjectChgInfo>> fieldInfoMap = null;
+		if (objectCtxChangeMap.containsKey(objectInfo)) {
+			fieldInfoMap = objectCtxChangeMap.get(objectInfo);
+			objectChgInfoList = fieldInfoMap.get(fi.getFieldIndex());
 
-			if (highlightingInfoList != null) {
-				HighlightingInfo lastInfoObj = highlightingInfoList.get(highlightingInfoList.size() - 1);
+			if (objectChgInfoList != null) {
+				ObjectChgInfo lastInfoObj = objectChgInfoList.get(objectChgInfoList.size() - 1);
 				prevCtx = lastInfoObj.getCtx();
 			} else {
-				highlightingInfoList = new ArrayList<HighlightingInfo>();
+				objectChgInfoList = new ArrayList<ObjectChgInfo>();
 			}
 		} else {
-			highlightingInfoList = new ArrayList<HighlightingInfo>();
-			fieldInfoMap = new HashMap<Integer, List<HighlightingInfo>>();
-			highlightingInfoList.add(new HighlightingInfo(ctx, frame.getPrevious().getPC().simplify(ctx).getValue().getLineNumber(), frame.getClassInfo().getName()));
-			fieldInfoMap.put(fi.getFieldIndex(), highlightingInfoList);
-			highlightingInfoMap.put(uniqueObjKey, fieldInfoMap);
-//			addNewInfoMap.put(fi.getFieldIndex(), highlightingInfoList);
-//			highlightingInfoMap.put(uniqueObjKey, addNewInfoMap);
+			objectChgInfoList = new ArrayList<ObjectChgInfo>();
+			fieldInfoMap = new HashMap<Integer, List<ObjectChgInfo>>();
+			objectChgInfoList.add(new ObjectChgInfo(ctx, frame.getPrevious().getPC().simplify(ctx).getValue().getLineNumber(), frame.getClassInfo().getName()));
+			fieldInfoMap.put(fi.getFieldIndex(), objectChgInfoList);
+			objectCtxChangeMap.put(objectInfo, fieldInfoMap);
 		}
 
 		if (prevCtx!= null && !ctx.equivalentTo(prevCtx)) {
-//			String[] parseObjKey = uniqueObjKey.split(":");
-//			int objRef = Integer.parseInt(parseObjKey[1]);
-//			String className = parseObjKey[0];
-//			String currentUniqueName = frame.getClassInfo().getName().equals(className) + ":" + eiFieldOwner.getObjectRef();
-//			if (currentUniqueName.equals) {
-			HighlightingInfo addNewInfoObj= null;
+			ObjectChgInfo addNewInfoObj= null;
 				if (fi.isStatic()) {
 					System.out.println("in static " + frame.getPC().simplify(ctx).getValue().getLineNumber());
-					addNewInfoObj = new HighlightingInfo(ctx,
+					addNewInfoObj = new ObjectChgInfo(ctx,
 							frame.getPC().simplify(ctx).getValue().getLineNumber(), frame.getClassInfo().getName());
 					
 				} else {
 					System.out.println("non");
-					addNewInfoObj = new HighlightingInfo(ctx,
+					addNewInfoObj = new ObjectChgInfo(ctx,
 							frame.getPrevious().getPC().simplify(ctx).getValue().getLineNumber(),
 							frame.getPrevious().getClassInfo().getName());
 				}
-				highlightingInfoList.add(addNewInfoObj);
-				fieldInfoMap.put(fi.getFieldIndex(), highlightingInfoList);
-				highlightingInfoMap.put(uniqueObjKey, fieldInfoMap);
-				ti.coverage.coverWriteField(ctx, val, field, eiFieldOwner, fi, highlightingInfoMap, frame,
-						uniqueObjKey);
+				objectChgInfoList.add(addNewInfoObj);
+				fieldInfoMap.put(fi.getFieldIndex(), objectChgInfoList);
+				objectCtxChangeMap.put(objectInfo, fieldInfoMap);
+				ti.coverage.coverWriteField(ctx, val, field, eiFieldOwner, fi, objectCtxChangeMap, frame,
+						objectInfo);
 //			}
 
 		}

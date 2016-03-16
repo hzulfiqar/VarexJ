@@ -25,7 +25,8 @@ import cmu.conditional.BiFunction;
 import cmu.conditional.ChoiceFactory;
 import cmu.conditional.Conditional;
 import cmu.conditional.One;
-import cmu.utils.HighlightingInfo;
+import cmu.utils.ObjectChgInfo;
+import cmu.utils.ObjectInfo;
 import de.fosd.typechef.featureexpr.FeatureExpr;
 import de.fosd.typechef.featureexpr.FeatureExprFactory;
 import gov.nasa.jpf.vm.ElementInfo;
@@ -113,18 +114,19 @@ public class GETFIELD extends InstanceFieldInstruction {
 					}
 					
 					FeatureExpr prevCtx = FeatureExprFactory.False();
-					Map<Integer, List<HighlightingInfo>> getHighlightingInfoMap = highlightingInfoMap.get(fi.getClassInfo().getName());
-					if(getHighlightingInfoMap != null){
-						List<HighlightingInfo> highlightingInfoList = getHighlightingInfoMap.get(fi.getFieldIndex());
+					ObjectInfo objectInfo = new ObjectInfo(frame.getClassInfo().getName(), objRef);
+					Map<Integer, List<ObjectChgInfo>> fieldInfoMap = objectCtxChangeMap.get(objectInfo);
+					if(fieldInfoMap != null){
+						List<ObjectChgInfo> highlightingInfoList = fieldInfoMap.get(fi.getFieldIndex());
 						if(highlightingInfoList != null){
-							HighlightingInfo lastInfoObj = highlightingInfoList.get(highlightingInfoList.size()-1);
+							ObjectChgInfo lastInfoObj = highlightingInfoList.get(highlightingInfoList.size()-1);
 							prevCtx = lastInfoObj.getCtx();
 						}
 					}
 //					
 					if(!ctx.equivalentTo(prevCtx)){
 //						System.out.println("Prev: " + Conditional.getCTXString(prevCtx) + " Curr: " + Conditional.getCTXString(ctx) + " oldValue: " + val + " newvalue: " + ival + " Field: " + fi.toString());
-						ti.coverage.coverReadField(ctx, ival, val, prevCtx, fi, frame, highlightingInfoMap);
+						ti.coverage.coverReadField(ctx, ival, val, prevCtx, fi, frame, objectCtxChangeMap, objectInfo);
 					}
 
 				} else { // 2 slotter
