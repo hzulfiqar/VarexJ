@@ -155,24 +155,24 @@ public abstract class FieldInstruction extends JVMInstruction implements Variabl
 
 		FeatureExpr prevCtx = null;
 		ObjectInfo objectInfo = new ObjectInfo(frame.getClassInfo().getName(), eiFieldOwner.getObjectRef());
-		List<FieldChgInfo> objectChgInfoList = null;
+		List<FieldChgInfo> fieldChgInfoList = null;
 		Map<Integer, List<FieldChgInfo>> fieldInfoMap = null;
 		
 		if (objectCtxChangeMap.containsKey(objectInfo)) {
 			fieldInfoMap = objectCtxChangeMap.get(objectInfo);
-			objectChgInfoList = fieldInfoMap.get(fi.getFieldIndex());
+			fieldChgInfoList = fieldInfoMap.get(fi.getFieldIndex());
 
-			if (objectChgInfoList != null) {
-				FieldChgInfo lastInfoObj = objectChgInfoList.get(objectChgInfoList.size() - 1);
+			if (fieldChgInfoList != null) {
+				FieldChgInfo lastInfoObj = fieldChgInfoList.get(fieldChgInfoList.size() - 1);
 				prevCtx = lastInfoObj.getCtx();
 			} else {
-				objectChgInfoList = new ArrayList<FieldChgInfo>();
+				fieldChgInfoList = new ArrayList<FieldChgInfo>();
 			}
 		} else {
-			objectChgInfoList = new ArrayList<FieldChgInfo>();
+			fieldChgInfoList = new ArrayList<FieldChgInfo>();
 			fieldInfoMap = new HashMap<Integer, List<FieldChgInfo>>();
-			objectChgInfoList.add(new FieldChgInfo(ctx, frame.getPrevious().getPC().simplify(ctx).getValue().getLineNumber()));
-			fieldInfoMap.put(fi.getFieldIndex(), objectChgInfoList);
+			fieldChgInfoList.add(new FieldChgInfo(ctx, frame.getPrevious().getPC().simplify(ctx).getValue().getLineNumber()));
+			fieldInfoMap.put(fi.getFieldIndex(), fieldChgInfoList);
 			objectCtxChangeMap.put(objectInfo, fieldInfoMap);
 		}
 
@@ -186,9 +186,10 @@ public abstract class FieldInstruction extends JVMInstruction implements Variabl
 					addNewInfoObj = new FieldChgInfo(ctx,
 							frame.getPrevious().getPC().simplify(ctx).getValue().getLineNumber());
 				}
-				objectChgInfoList.add(addNewInfoObj);
-				fieldInfoMap.put(fi.getFieldIndex(), objectChgInfoList);
+				fieldChgInfoList.add(addNewInfoObj);
+				fieldInfoMap.put(fi.getFieldIndex(), fieldChgInfoList);
 				objectCtxChangeMap.put(objectInfo, fieldInfoMap);
+				System.out.println("added change from " + prevCtx + " to: " + ctx + " For object: " + objectInfo.getClassName() + " " + objectInfo.getObjectRef());
 				ti.coverage.coverWriteField(ctx, val, field, fi, objectCtxChangeMap, frame,
 						objectInfo);
 //			}

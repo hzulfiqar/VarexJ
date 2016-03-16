@@ -113,21 +113,25 @@ public class GETFIELD extends InstanceFieldInstruction {
 						frame.setOperandAttr(attr);
 					}
 					
-					FeatureExpr prevCtx = FeatureExprFactory.False();
-					ObjectInfo objectInfo = new ObjectInfo(frame.getClassInfo().getName(), objRef);
+					ObjectInfo objectInfo = new ObjectInfo(fi.getClassInfo().getName(), ei.getObjectRef());
 					Map<Integer, List<FieldChgInfo>> fieldInfoMap = objectCtxChangeMap.get(objectInfo);
+					System.out.println("reading in class: " + objectInfo.getClassName());
 					if(fieldInfoMap != null){
-						List<FieldChgInfo> highlightingInfoList = fieldInfoMap.get(fi.getFieldIndex());
-						if(highlightingInfoList != null){
-							FieldChgInfo lastInfoObj = highlightingInfoList.get(highlightingInfoList.size()-1);
-							prevCtx = lastInfoObj.getCtx();
+						List<FieldChgInfo> fieldChgInfoList = fieldInfoMap.get(fi.getFieldIndex());
+						if(fieldChgInfoList != null){
+							System.out.println("SAW THIS FIELD BEFORE");
+							FieldChgInfo lastInfoObj = fieldChgInfoList.get(fieldChgInfoList.size()-1);
+							FeatureExpr prevCtx = lastInfoObj.getCtx();
+							System.out.println("prev: " + prevCtx + " current: " + ctx + " for field: " + objectInfo.getClassName() + " " + objectInfo.getObjectRef());
+							if(!prevCtx.equivalentTo(ctx)){
+								System.out.println("Prev: " + Conditional.getCTXString(prevCtx) + " Curr: " + Conditional.getCTXString(ctx) + " oldValue: " + val + " newvalue: " + ival + " Field: " + fi.toString());
+								ti.coverage.coverReadField(ctx, ival, val, prevCtx, fi, frame, objectCtxChangeMap, objectInfo);
+							}
 						}
+						
 					}
 //					
-					if(!ctx.equivalentTo(prevCtx)){
-//						System.out.println("Prev: " + Conditional.getCTXString(prevCtx) + " Curr: " + Conditional.getCTXString(ctx) + " oldValue: " + val + " newvalue: " + ival + " Field: " + fi.toString());
-						ti.coverage.coverReadField(ctx, ival, val, prevCtx, fi, frame, objectCtxChangeMap, objectInfo);
-					}
+					
 
 				} else { // 2 slotter
 					Conditional<Long> lval = ei.get2SlotField(fi).simplify(ctx);

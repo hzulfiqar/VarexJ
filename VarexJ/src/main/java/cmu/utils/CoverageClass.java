@@ -436,7 +436,7 @@ public class CoverageClass {
 	}
 
 	public void coverReadField(FeatureExpr ctx, Conditional<?> val, Conditional<?> field, FeatureExpr preCtx,
-			FieldInfo fi, StackFrame frame, Map<ObjectInfo, Map<Integer, List<FieldChgInfo>>> highlightingInfoMap, ObjectInfo objectInfo) {
+			FieldInfo fi, StackFrame frame, Map<ObjectInfo, Map<Integer, List<FieldChgInfo>>> objectCtxChangeMap, ObjectInfo objectInfo) {
 		if (JPF.COVERAGE != null) {
 			if (JPF.SELECTED_COVERAGE_TYPE == JPF.COVERAGE_TYPE.readInteraction) {
 				if (val.size() - field.size() != 0) {
@@ -446,16 +446,16 @@ public class CoverageClass {
 					text.append(Conditional.getCTXString(ctx));
 					text.append("), but it was changed under contexts: ");
 					text.append("\n");
-					Map<Integer, List<FieldChgInfo>> infoMap = highlightingInfoMap.get(fi.getClassInfo().getName());
-					if (infoMap != null) {
-						List<FieldChgInfo> prevCtxDetails = infoMap.get(fi.getFieldIndex());
-						if (prevCtxDetails != null) {
-							for (FieldChgInfo info : prevCtxDetails) {
+					Map<Integer, List<FieldChgInfo>> fieldChgInfoMap = objectCtxChangeMap.get(objectInfo);
+					if (fieldChgInfoMap != null) {
+						List<FieldChgInfo> fieldChgInfoList = fieldChgInfoMap.get(fi.getFieldIndex());
+						if (fieldChgInfoList != null) {
+							for (FieldChgInfo fieldChgInfo : fieldChgInfoList) {
 								text.append("(");
-								text.append(Conditional.getCTXString(info.getCtx()));
+								text.append(Conditional.getCTXString(fieldChgInfo.getCtx()));
 								text.append(")");
 								text.append(
-										" in class " + objectInfo.getClassName() + " at line no: " + info.getLineNumber());
+										" in class " + objectInfo.getClassName() + " at line no: " + fieldChgInfo.getLineNumber());
 								text.append("\n");
 							}
 						}
