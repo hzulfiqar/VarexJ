@@ -404,18 +404,18 @@ public class CoverageClass {
 	}
 
 	public void coverWriteField(FeatureExpr ctx, Conditional<?> val, Conditional<?> field,
-			FieldInfo fi, Map<ObjectInfo, Map<Integer, List<FieldChgInfo>>> highlightingInfoMap, StackFrame frame, ObjectInfo objectInfo) {
+			FieldInfo fi, Map<ObjectInfo, Map<Integer, List<FieldChgInfo>>> objectCtxChangeMap, StackFrame frame, ObjectInfo objectInfo) {
 		if (JPF.COVERAGE != null) {
 			if (JPF.SELECTED_COVERAGE_TYPE == JPF.COVERAGE_TYPE.writeInteraction) {
 				if (val.size() - field.size() != 0) {
 					StringBuilder text = new StringBuilder();
 					text.append("Value of (" + fi.getName() + ") is changed under different contexts: ");
 					// text.append("\n(");
-					Map<Integer, List<FieldChgInfo>> infoMap = highlightingInfoMap
+					Map<Integer, List<FieldChgInfo>> fieldChgInfoMap = objectCtxChangeMap
 							.get(objectInfo);
-					List<FieldChgInfo> prevCtxDetails = infoMap.get(fi.getFieldIndex());
-					if (prevCtxDetails != null) {
-						for (FieldChgInfo info : prevCtxDetails) {
+					List<FieldChgInfo> fieldChgInfoList = fieldChgInfoMap.get(fi.getFieldIndex());
+					if (fieldChgInfoList != null) {
+						for (FieldChgInfo info : fieldChgInfoList) {
 							text.append("\n(");
 							text.append(Conditional.getCTXString(info.getCtx()));
 							text.append(") ");
