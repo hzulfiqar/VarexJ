@@ -404,15 +404,15 @@ public class CoverageClass {
 	}
 
 	public void coverWriteField(FeatureExpr ctx, Conditional<?> val, Conditional<?> field, ElementInfo eiFieldOwner,
-			FieldInfo fi, Map<String, Map<Integer, List<HighlightingInfo>>> highlightingInfoMap, StackFrame frame, String uniqueObjKey) {
+			FieldInfo fi, Map<String, Map<Integer, List<HighlightingInfo>>> highlightingInfoMap, StackFrame frame,
+			String uniqueObjKey) {
 		if (JPF.COVERAGE != null) {
 			if (JPF.SELECTED_COVERAGE_TYPE == JPF.COVERAGE_TYPE.writeInteraction) {
 				if (val.size() - field.size() != 0) {
 					StringBuilder text = new StringBuilder();
 					text.append("Value of (" + fi.getName() + ") is changed under different contexts: ");
 					// text.append("\n(");
-					Map<Integer, List<HighlightingInfo>> infoMap = highlightingInfoMap
-							.get(uniqueObjKey);
+					Map<Integer, List<HighlightingInfo>> infoMap = highlightingInfoMap.get(uniqueObjKey);
 					List<HighlightingInfo> prevCtxDetails = infoMap.get(fi.getFieldIndex());
 					if (prevCtxDetails != null) {
 						for (HighlightingInfo info : prevCtxDetails) {
@@ -436,7 +436,8 @@ public class CoverageClass {
 	}
 
 	public void coverReadField(FeatureExpr ctx, Conditional<?> val, Conditional<?> field, FeatureExpr preCtx,
-			FieldInfo fi, StackFrame frame, Map<String, Map<Integer, List<HighlightingInfo>>> highlightingInfoMap) {
+			FieldInfo fi, StackFrame frame, Map<String, Map<Integer, List<HighlightingInfo>>> highlightingInfoMap,
+			String uniqueObjKey) {
 		if (JPF.COVERAGE != null) {
 			if (JPF.SELECTED_COVERAGE_TYPE == JPF.COVERAGE_TYPE.readInteraction) {
 				if (val.size() - field.size() != 0) {
@@ -446,7 +447,7 @@ public class CoverageClass {
 					text.append(Conditional.getCTXString(ctx));
 					text.append("), but it was changed under contexts: ");
 					text.append("\n");
-					Map<Integer, List<HighlightingInfo>> infoMap = highlightingInfoMap.get(fi.getClassInfo().getName());
+					Map<Integer, List<HighlightingInfo>> infoMap = highlightingInfoMap.get(uniqueObjKey);
 					if (infoMap != null) {
 						List<HighlightingInfo> prevCtxDetails = infoMap.get(fi.getFieldIndex());
 						if (prevCtxDetails != null) {

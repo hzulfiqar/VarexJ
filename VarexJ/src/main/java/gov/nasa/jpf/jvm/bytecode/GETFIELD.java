@@ -36,8 +36,7 @@ import gov.nasa.jpf.vm.StackFrame;
 import gov.nasa.jpf.vm.ThreadInfo;
 
 /**
- * Fetch field from object
- * ..., objectref => ..., value
+ * Fetch field from object ..., objectref => ..., value
  */
 public class GETFIELD extends InstanceFieldInstruction {
 
@@ -59,7 +58,8 @@ public class GETFIELD extends InstanceFieldInstruction {
 	public Conditional<Instruction> execute(FeatureExpr ctx, final ThreadInfo ti) {
 		final StackFrame frame = ti.getModifiableTopFrame();
 
-		Conditional<Integer> objRef = frame.peek(ctx); // don't pop yet, we might re-enter
+		Conditional<Integer> objRef = frame.peek(ctx); // don't pop yet, we
+														// might re-enter
 
 		lastThis = objRef;
 		final GETFIELD thisInstruction = this;
@@ -70,14 +70,16 @@ public class GETFIELD extends InstanceFieldInstruction {
 			public Conditional<Instruction> apply(FeatureExpr ctx, Integer objRef) {
 
 				if (objRef == MJIEnv.NULL) {
-					return new One<>(ti.createAndThrowException(ctx, "java.lang.NullPointerException", "referencing field '" + fname + "' on null object"));
+					return new One<>(ti.createAndThrowException(ctx, "java.lang.NullPointerException",
+							"referencing field '" + fname + "' on null object"));
 				}
 
 				ElementInfo ei = ti.getElementInfoWithUpdatedSharedness(objRef);
 
 				FieldInfo fi = getFieldInfo(ctx);
 				if (fi == null) {
-					return new One<>(ti.createAndThrowException(ctx, "java.lang.NoSuchFieldError", "referencing field '" + fname + "' in " + ei));
+					return new One<>(ti.createAndThrowException(ctx, "java.lang.NoSuchFieldError",
+							"referencing field '" + fname + "' in " + ei));
 				}
 
 				// check if this breaks the current transition
@@ -87,16 +89,18 @@ public class GETFIELD extends InstanceFieldInstruction {
 					}
 				}
 
-				frame.pop(ctx); // Ok, now we can remove the object ref from the stack
+				frame.pop(ctx); // Ok, now we can remove the object ref from the
+								// stack
 				Object attr = ei.getFieldAttr(fi);
 
-				// We could encapsulate the push in ElementInfo, but not the GET, so we keep it at a similiar level
+				// We could encapsulate the push in ElementInfo, but not the
+				// GET, so we keep it at a similiar level
 				if (fi.getStorageSize() == 1) { // 1 slotter
 					Conditional<Integer> val;
 					Conditional<Integer> ival = ei.get1SlotField(fi);
-					if(Conditional.isTautology(ctx)){
+					if (Conditional.isTautology(ctx)) {
 						val = frame.peek(ctx);
-					}else{
+					} else {
 						val = ChoiceFactory.create(ctx, frame.peek(ctx), ival).simplify();
 					}
 					lastValue = ival;
@@ -111,20 +115,21 @@ public class GETFIELD extends InstanceFieldInstruction {
 					if (attr != null) {
 						frame.setOperandAttr(attr);
 					}
-					
-					FeatureExpr prevCtx = FeatureExprFactory.False();
-					Map<Integer, List<HighlightingInfo>> getHighlightingInfoMap = highlightingInfoMap.get(fi.getClassInfo().getName());
-					if(getHighlightingInfoMap != null){
+
+					FeatureExpr prevCtx = null;
+					String uniqueObjKey = fi.getClassInfo().getName() + ":" + ei.getObjectRef();
+					Map<Integer, List<HighlightingInfo>> getHighlightingInfoMap = highlightingInfoMap.get(uniqueObjKey);
+					if (getHighlightingInfoMap != null) {
 						List<HighlightingInfo> highlightingInfoList = getHighlightingInfoMap.get(fi.getFieldIndex());
-						if(highlightingInfoList != null){
-							HighlightingInfo lastInfoObj = highlightingInfoList.get(highlightingInfoList.size()-1);
+						if (highlightingInfoList != null) {
+							HighlightingInfo lastInfoObj = highlightingInfoList.get(highlightingInfoList.size() - 1);
 							prevCtx = lastInfoObj.getCtx();
 						}
 					}
-//					
-					if(!ctx.equivalentTo(prevCtx)){
-//						System.out.println("Prev: " + Conditional.getCTXString(prevCtx) + " Curr: " + Conditional.getCTXString(ctx) + " oldValue: " + val + " newvalue: " + ival + " Field: " + fi.toString());
-						ti.coverage.coverReadField(ctx, ival, val, prevCtx, fi, frame, highlightingInfoMap);
+
+					if (prevCtx != null && !ctx.equivalentTo(prevCtx)) {
+						ti.coverage.coverReadField(ctx, ival, val, prevCtx, fi, frame, highlightingInfoMap,
+								uniqueObjKey);
 					}
 
 				} else { // 2 slotter
