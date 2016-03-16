@@ -26,7 +26,9 @@ import java.util.Map;
 import cmu.conditional.ChoiceFactory;
 import cmu.conditional.Conditional;
 import cmu.conditional.One;
-import cmu.utils.HighlightingInfo;
+import cmu.utils.FieldChgInfo;
+import cmu.utils.ObjectInfo;
+import cmu.utils.UnintendedInteractionChecker;
 import de.fosd.typechef.featureexpr.FeatureExpr;
 import de.fosd.typechef.featureexpr.FeatureExprFactory;
 import gov.nasa.jpf.Config;
@@ -58,7 +60,6 @@ public abstract class FieldInstruction extends JVMInstruction implements Variabl
 	static boolean skipConstructedFinals; // do we ignore final fields for POR
 											// after the object's constructor
 											// has finished?
-	protected static Map<String, Map<Integer, List<HighlightingInfo>>> highlightingInfoMap = new HashMap<String, Map<Integer, List<HighlightingInfo>>>();
 
 	protected String fname;
 	protected String className;
@@ -152,46 +153,8 @@ public abstract class FieldInstruction extends JVMInstruction implements Variabl
 			}
 		}
 
-		FeatureExpr prevCtx = null;
-		String uniqueObjKey = frame.getClassInfo().getName() + ":" + eiFieldOwner.getObjectRef();
-		List<HighlightingInfo> highlightingInfoList = null;
-		Map<Integer, List<HighlightingInfo>> fieldInfoMap = null;
-		if (highlightingInfoMap.containsKey(uniqueObjKey)) {
-			fieldInfoMap = highlightingInfoMap.get(uniqueObjKey);
-			highlightingInfoList = fieldInfoMap.get(fi.getFieldIndex());
-
-			if (highlightingInfoList != null) {
-				HighlightingInfo lastInfoObj = highlightingInfoList.get(highlightingInfoList.size() - 1);
-				prevCtx = lastInfoObj.getCtx();
-			} else {
-				highlightingInfoList = new ArrayList<HighlightingInfo>();
-			}
-		} else {
-			highlightingInfoList = new ArrayList<HighlightingInfo>();
-			fieldInfoMap = new HashMap<Integer, List<HighlightingInfo>>();
-			highlightingInfoList
-					.add(new HighlightingInfo(ctx, frame.getPrevious().getPC().simplify(ctx).getValue().getLineNumber(),
-							frame.getPrevious().getClassInfo().getName()));
-			fieldInfoMap.put(fi.getFieldIndex(), highlightingInfoList);
-			highlightingInfoMap.put(uniqueObjKey, fieldInfoMap);
-		}
-
-		if (prevCtx != null && !ctx.equivalentTo(prevCtx)) {
-			HighlightingInfo addNewInfoObj = null;
-			if (fi.isStatic()) {
-				addNewInfoObj = new HighlightingInfo(ctx, frame.getPC().simplify(ctx).getValue().getLineNumber(),
-						frame.getClassInfo().getName());
-
-			} else {
-				addNewInfoObj = new HighlightingInfo(ctx,
-						frame.getPrevious().getPC().simplify(ctx).getValue().getLineNumber(),
-						frame.getPrevious().getClassInfo().getName());
-			}
-			highlightingInfoList.add(addNewInfoObj);
-			fieldInfoMap.put(fi.getFieldIndex(), highlightingInfoList);
-			highlightingInfoMap.put(uniqueObjKey, fieldInfoMap);
-			ti.coverage.coverWriteField(ctx, val, field, eiFieldOwner, fi, highlightingInfoMap, frame, uniqueObjKey);
-		}
+		UnintendedInteractionChecker.checkUnintendedWriteInteraction(field, ctx, ti, frame, eiFieldOwner.getObjectRef(),
+				fi, val);
 
 		lastValue = val;
 

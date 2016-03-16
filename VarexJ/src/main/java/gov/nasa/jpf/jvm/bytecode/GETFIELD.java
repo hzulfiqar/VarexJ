@@ -25,7 +25,9 @@ import cmu.conditional.BiFunction;
 import cmu.conditional.ChoiceFactory;
 import cmu.conditional.Conditional;
 import cmu.conditional.One;
-import cmu.utils.HighlightingInfo;
+import cmu.utils.FieldChgInfo;
+import cmu.utils.ObjectInfo;
+import cmu.utils.UnintendedInteractionChecker;
 import de.fosd.typechef.featureexpr.FeatureExpr;
 import de.fosd.typechef.featureexpr.FeatureExprFactory;
 import gov.nasa.jpf.vm.ElementInfo;
@@ -116,21 +118,8 @@ public class GETFIELD extends InstanceFieldInstruction {
 						frame.setOperandAttr(attr);
 					}
 
-					FeatureExpr prevCtx = null;
-					String uniqueObjKey = fi.getClassInfo().getName() + ":" + ei.getObjectRef();
-					Map<Integer, List<HighlightingInfo>> getHighlightingInfoMap = highlightingInfoMap.get(uniqueObjKey);
-					if (getHighlightingInfoMap != null) {
-						List<HighlightingInfo> highlightingInfoList = getHighlightingInfoMap.get(fi.getFieldIndex());
-						if (highlightingInfoList != null) {
-							HighlightingInfo lastInfoObj = highlightingInfoList.get(highlightingInfoList.size() - 1);
-							prevCtx = lastInfoObj.getCtx();
-						}
-					}
-
-					if (prevCtx != null && !ctx.equivalentTo(prevCtx)) {
-						ti.coverage.coverReadField(ctx, ival, val, prevCtx, fi, frame, highlightingInfoMap,
-								uniqueObjKey);
-					}
+					UnintendedInteractionChecker.checkUnintendedReadInteraction(frame, fi, ei.getObjectRef(), ctx, ti,
+							val, ival);
 
 				} else { // 2 slotter
 					Conditional<Long> lval = ei.get2SlotField(fi).simplify(ctx);

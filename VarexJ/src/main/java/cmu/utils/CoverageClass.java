@@ -175,6 +175,7 @@ public class CoverageClass {
 						}
 
 					}) {
+
 				private static final long serialVersionUID = 1L;
 
 				@Override
@@ -219,10 +220,12 @@ public class CoverageClass {
 					}
 				}
 			};
+
 			LinkedList<Long> initialValue = new LinkedList<Long>();
 			initialValue.add(time);
 			values.put(instruction, initialValue);
 			JPF.COVERAGE.setLineCovered(file, instruction.getLineNumber(), (int) (time / modifier), values);
+
 		}
 	}
 
@@ -403,71 +406,87 @@ public class CoverageClass {
 		}
 	}
 
-	public void coverWriteField(FeatureExpr ctx, Conditional<?> val, Conditional<?> field, ElementInfo eiFieldOwner,
-			FieldInfo fi, Map<String, Map<Integer, List<HighlightingInfo>>> highlightingInfoMap, StackFrame frame,
-			String uniqueObjKey) {
+	public void coverWriteField(FeatureExpr ctx, Conditional<?> val, Conditional<?> field, FieldInfo fi,
+			Map<ObjectInfo, Map<Integer, List<FieldChgInfo>>> objectCtxChangeMap, StackFrame frame,
+			ObjectInfo objectInfo) {
 		if (JPF.COVERAGE != null) {
 			if (JPF.SELECTED_COVERAGE_TYPE == JPF.COVERAGE_TYPE.writeInteraction) {
-				if (val.size() - field.size() != 0) {
-					StringBuilder text = new StringBuilder();
-					text.append("Value of (" + fi.getName() + ") is changed under different contexts: ");
-					// text.append("\n(");
-					Map<Integer, List<HighlightingInfo>> infoMap = highlightingInfoMap.get(uniqueObjKey);
-					List<HighlightingInfo> prevCtxDetails = infoMap.get(fi.getFieldIndex());
-					if (prevCtxDetails != null) {
-						for (HighlightingInfo info : prevCtxDetails) {
-							text.append("\n(");
-							text.append(Conditional.getCTXString(info.getCtx()));
-							text.append(") ");
-							text.append("in class " + info.getClassName() + " at line number: " + info.getLineNumber());
-						}
+				// TODO: Why was this condition necessary? This prevented it
+				// from highlighting interactions with a degree of >=2
+				// I removed it for now, but this causes it to display
+				// interaction degree as 0//TODO: this example fails. It shows
+				// that the interaction in the last line is 0
+				// myMain obj2 = new myMain();
+				//
+				// if (b) {
+				// obj2.setX(10);
+				// if(c)
+				// obj2.setX(10);
+				// if (val.size() - field.size() != 0) {
+				StringBuilder text = new StringBuilder();
+				text.append("Value of (" + fi.getName() + ") is changed under different contexts: ");
+				// text.append("\n(");
+				Map<Integer, List<FieldChgInfo>> fieldChgInfoMap = objectCtxChangeMap.get(objectInfo);
+				List<FieldChgInfo> fieldChgInfoList = fieldChgInfoMap.get(fi.getFieldIndex());
+				if (fieldChgInfoList != null) {
+					for (FieldChgInfo info : fieldChgInfoList) {
+						text.append("\n(");
+						text.append(Conditional.getCTXString(info.getCtx()));
+						text.append(") ");
+						text.append(
+								"in class " + objectInfo.getClassName() + " at line number: " + info.getLineNumber());
 					}
-					// text.append(")");
-
-					CoverageLogger.logInteraction(frame, val.size() - field.size(), text, ctx);
-					CoverageLogger.logInteraction(frame.getPrevious(), val.size() - field.size(), text, ctx);
-					CoverageLogger.logInteraction(frame.getPrevious().getPrevious(), val.size() - field.size(), text,
-							ctx);
-
 				}
+				// text.append(")");
+
+				CoverageLogger.logInteraction(frame, val.size() - field.size(), text, ctx);
+				CoverageLogger.logInteraction(frame.getPrevious(), val.size() - field.size(), text, ctx);
+				CoverageLogger.logInteraction(frame.getPrevious().getPrevious(), val.size() - field.size(), text, ctx);
+
+				// }
+
 			}
 		}
 
 	}
 
 	public void coverReadField(FeatureExpr ctx, Conditional<?> val, Conditional<?> field, FeatureExpr preCtx,
-			FieldInfo fi, StackFrame frame, Map<String, Map<Integer, List<HighlightingInfo>>> highlightingInfoMap,
-			String uniqueObjKey) {
+			FieldInfo fi, StackFrame frame, Map<ObjectInfo, Map<Integer, List<FieldChgInfo>>> objectCtxChangeMap,
+			ObjectInfo objectInfo) {
 		if (JPF.COVERAGE != null) {
 			if (JPF.SELECTED_COVERAGE_TYPE == JPF.COVERAGE_TYPE.readInteraction) {
-				if (val.size() - field.size() != 0) {
-					StringBuilder text = new StringBuilder();
-					text.append("Value of (" + fi.getName() + ") is read under context ");
-					text.append("(");
-					text.append(Conditional.getCTXString(ctx));
-					text.append("), but it was changed under contexts: ");
-					text.append("\n");
-					Map<Integer, List<HighlightingInfo>> infoMap = highlightingInfoMap.get(uniqueObjKey);
-					if (infoMap != null) {
-						List<HighlightingInfo> prevCtxDetails = infoMap.get(fi.getFieldIndex());
-						if (prevCtxDetails != null) {
-							for (HighlightingInfo info : prevCtxDetails) {
-								text.append("(");
-								text.append(Conditional.getCTXString(info.getCtx()));
-								text.append(")");
-								text.append(
-										" in class " + info.getClassName() + " at line no: " + info.getLineNumber());
-								text.append("\n");
-							}
+				// TODO: Why was this condition necessary? This prevented it
+				// from highlighting interactions with a degree of >=2
+				// I removed it for now, but this causes it to display the
+				// interaction degree as 0.
+				// if (val.size() - field.size() != 0) {
+				StringBuilder text = new StringBuilder();
+				text.append("Value of (" + fi.getName() + ") is read under context ");
+				text.append("(");
+				text.append(Conditional.getCTXString(ctx));
+				text.append("), but it was changed under contexts: ");
+				text.append("\n");
+				Map<Integer, List<FieldChgInfo>> fieldChgInfoMap = objectCtxChangeMap.get(objectInfo);
+				if (fieldChgInfoMap != null) {
+					List<FieldChgInfo> fieldChgInfoList = fieldChgInfoMap.get(fi.getFieldIndex());
+					if (fieldChgInfoList != null) {
+						for (FieldChgInfo fieldChgInfo : fieldChgInfoList) {
+							text.append("(");
+							text.append(Conditional.getCTXString(fieldChgInfo.getCtx()));
+							text.append(")");
+							text.append(" in class " + objectInfo.getClassName() + " at line no: "
+									+ fieldChgInfo.getLineNumber());
+							text.append("\n");
 						}
 					}
-					// text.append(frame.trace(ctx));
-					// text.append("\n");
-					// text.append(": ");
-
-					CoverageLogger.logInteraction(frame, val.size() - field.size(), text, ctx);
-
 				}
+				// text.append(frame.trace(ctx));
+				// text.append("\n");
+				// text.append(": ");
+
+				CoverageLogger.logInteraction(frame, val.size() - field.size(), text, ctx);
+
+				// }
 			}
 		}
 	}
