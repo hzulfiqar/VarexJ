@@ -407,7 +407,15 @@ public class CoverageClass {
 			FieldInfo fi, Map<ObjectInfo, Map<Integer, List<FieldChgInfo>>> objectCtxChangeMap, StackFrame frame, ObjectInfo objectInfo) {
 		if (JPF.COVERAGE != null) {
 			if (JPF.SELECTED_COVERAGE_TYPE == JPF.COVERAGE_TYPE.writeInteraction) {
-				if (val.size() - field.size() != 0) {
+				//TODO: Why was this condition necessary? This prevented it from highlighting interactions with a degree of >=2
+				//I removed it for now, but this causes it to display interaction degree as 0//TODO: this example fails. It shows that the interaction in the last line is 0
+				//myMain obj2 = new myMain();		
+				//				
+				//				if (b) {
+				//					obj2.setX(10);
+				//					if(c)
+				//						obj2.setX(10);
+//				if (val.size() - field.size() != 0) {
 					StringBuilder text = new StringBuilder();
 					text.append("Value of (" + fi.getName() + ") is changed under different contexts: ");
 					// text.append("\n(");
@@ -415,7 +423,7 @@ public class CoverageClass {
 							.get(objectInfo);
 					List<FieldChgInfo> fieldChgInfoList = fieldChgInfoMap.get(fi.getFieldIndex());
 					if (fieldChgInfoList != null) {
-						for (FieldChgInfo info : fieldChgInfoList) {
+						for (FieldChgInfo info : fieldChgInfoList) {						
 							text.append("\n(");
 							text.append(Conditional.getCTXString(info.getCtx()));
 							text.append(") ");
@@ -429,7 +437,8 @@ public class CoverageClass {
 					CoverageLogger.logInteraction(frame.getPrevious().getPrevious(), val.size() - field.size(), text,
 							ctx);
 
-				}
+//				}
+
 			}
 		}
 
@@ -439,7 +448,9 @@ public class CoverageClass {
 			FieldInfo fi, StackFrame frame, Map<ObjectInfo, Map<Integer, List<FieldChgInfo>>> objectCtxChangeMap, ObjectInfo objectInfo) {
 		if (JPF.COVERAGE != null) {
 			if (JPF.SELECTED_COVERAGE_TYPE == JPF.COVERAGE_TYPE.readInteraction) {
-				if (val.size() - field.size() != 0) {
+				//TODO: Why was this condition necessary? This prevented it from highlighting interactions with a degree of >=2
+				//I removed it for now, but this causes it to display the interaction degree as 0.
+				//if (val.size() - field.size() != 0) {
 					StringBuilder text = new StringBuilder();
 					text.append("Value of (" + fi.getName() + ") is read under context ");
 					text.append("(");
@@ -466,7 +477,7 @@ public class CoverageClass {
 
 					CoverageLogger.logInteraction(frame, val.size() - field.size(), text, ctx);
 
-				}
+				//}
 			}
 		}
 	}

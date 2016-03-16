@@ -28,6 +28,7 @@ import cmu.conditional.Conditional;
 import cmu.conditional.One;
 import cmu.utils.FieldChgInfo;
 import cmu.utils.ObjectInfo;
+import cmu.utils.UnintendedInteractionChecker;
 import de.fosd.typechef.featureexpr.FeatureExpr;
 import de.fosd.typechef.featureexpr.FeatureExprFactory;
 import gov.nasa.jpf.Config;
@@ -59,7 +60,6 @@ public abstract class FieldInstruction extends JVMInstruction implements Variabl
 	static boolean skipConstructedFinals; // do we ignore final fields for POR
 											// after the object's constructor
 											// has finished?
-	protected static Map<ObjectInfo, Map<Integer, List<FieldChgInfo>>> objectCtxChangeMap = new HashMap<ObjectInfo, Map<Integer, List<FieldChgInfo>>>();
 
 	protected String fname;
 	protected String className;
@@ -152,50 +152,8 @@ public abstract class FieldInstruction extends JVMInstruction implements Variabl
 				val = ChoiceFactory.create(ctx, frame.peek(ctx), field).simplify();
 			}
 		}
-
-		FeatureExpr prevCtx = null;
-		ObjectInfo objectInfo = new ObjectInfo(frame.getClassInfo().getName(), eiFieldOwner.getObjectRef());
-		List<FieldChgInfo> fieldChgInfoList = null;
-		Map<Integer, List<FieldChgInfo>> fieldInfoMap = null;
-		
-		if (objectCtxChangeMap.containsKey(objectInfo)) {
-			fieldInfoMap = objectCtxChangeMap.get(objectInfo);
-			fieldChgInfoList = fieldInfoMap.get(fi.getFieldIndex());
-
-			if (fieldChgInfoList != null) {
-				FieldChgInfo lastInfoObj = fieldChgInfoList.get(fieldChgInfoList.size() - 1);
-				prevCtx = lastInfoObj.getCtx();
-			} else {
-				fieldChgInfoList = new ArrayList<FieldChgInfo>();
-			}
-		} else {
-			fieldChgInfoList = new ArrayList<FieldChgInfo>();
-			fieldInfoMap = new HashMap<Integer, List<FieldChgInfo>>();
-			fieldChgInfoList.add(new FieldChgInfo(ctx, frame.getPrevious().getPC().simplify(ctx).getValue().getLineNumber()));
-			fieldInfoMap.put(fi.getFieldIndex(), fieldChgInfoList);
-			objectCtxChangeMap.put(objectInfo, fieldInfoMap);
-		}
-
-		if (prevCtx!= null && !ctx.equivalentTo(prevCtx)) {
-			FieldChgInfo addNewInfoObj= null;
-				if (fi.isStatic()) {
-					addNewInfoObj = new FieldChgInfo(ctx,
-							frame.getPC().simplify(ctx).getValue().getLineNumber());
-					
-				} else {
-					addNewInfoObj = new FieldChgInfo(ctx,
-							frame.getPrevious().getPC().simplify(ctx).getValue().getLineNumber());
-				}
-				fieldChgInfoList.add(addNewInfoObj);
-				fieldInfoMap.put(fi.getFieldIndex(), fieldChgInfoList);
-				objectCtxChangeMap.put(objectInfo, fieldInfoMap);
-				System.out.println("added change from " + prevCtx + " to: " + ctx + " For object: " + objectInfo.getClassName() + " " + objectInfo.getObjectRef());
-				ti.coverage.coverWriteField(ctx, val, field, fi, objectCtxChangeMap, frame,
-						objectInfo);
-//			}
-
-		}
-		
+	
+		UnintendedInteractionChecker.checkUnintendedWriteInteraction(field, ctx, ti, frame, eiFieldOwner.getObjectRef(), fi, val);
 		
 
 		lastValue = val;
