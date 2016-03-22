@@ -50,9 +50,14 @@ public class UnintendedInteractionChecker {
 
 			// TODO: Why do we have to get the previous frame to get the correct
 			// line number ?!
-			fieldChgInfoList
-					.add(new FieldChgInfo(ctx, frame.getPrevious().getPC().simplify(ctx).getValue().getLineNumber(),
-							frame.getPrevious().getClassInfo().getName()));
+			if (fi.isStatic()) {
+				fieldChgInfoList.add(new FieldChgInfo(ctx, frame.getPC().simplify(ctx).getValue().getLineNumber(),
+						frame.getClassInfo().getName()));
+			} else {
+				fieldChgInfoList
+						.add(new FieldChgInfo(ctx, frame.getPrevious().getPC().simplify(ctx).getValue().getLineNumber(),
+								frame.getPrevious().getClassInfo().getName()));
+			}
 			fieldCtxChangeMap.put(fi.getFieldIndex(), fieldChgInfoList);
 			objectCtxChangeMap.put(objectInfo, fieldCtxChangeMap);
 		}
@@ -74,7 +79,6 @@ public class UnintendedInteractionChecker {
 
 			fieldChgInfoList.add(currentFieldChgInfo);
 			fieldCtxChangeMap.put(fi.getFieldIndex(), fieldChgInfoList);
-			System.out.println("Adding change from : " + prevCtx + " to " + ctx);
 			objectCtxChangeMap.put(objectInfo, fieldCtxChangeMap);
 			ti.coverage.coverWriteField(ctx, val, field, fi, objectCtxChangeMap, frame, objectInfo);
 			// }

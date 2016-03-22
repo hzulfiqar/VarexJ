@@ -429,19 +429,22 @@ public class CoverageClass {
 				Map<Integer, List<FieldChgInfo>> fieldChgInfoMap = objectCtxChangeMap.get(objectInfo);
 				List<FieldChgInfo> fieldChgInfoList = fieldChgInfoMap.get(fi.getFieldIndex());
 				if (fieldChgInfoList != null) {
-					for (FieldChgInfo info : fieldChgInfoList) {
+					for (FieldChgInfo fieldChgInfo : fieldChgInfoList) {
 						text.append("\n(");
-						text.append(Conditional.getCTXString(info.getCtx()));
+						text.append(Conditional.getCTXString(fieldChgInfo.getCtx()));
 						text.append(") ");
 						text.append(
-								"in class " + objectInfo.getClassName() + " at line number: " + info.getLineNumber());
+								"in class " + fieldChgInfo.getClassName() + " at line number: " + fieldChgInfo.getLineNumber());
 					}
 				}
 				// text.append(")");
-
+//				TODO interaction degree, we have to decide...
+//				TODO Propogation
+				
+				
 				CoverageLogger.logInteraction(frame, val.size() - field.size(), text, ctx);
 				CoverageLogger.logInteraction(frame.getPrevious(), val.size() - field.size(), text, ctx);
-				CoverageLogger.logInteraction(frame.getPrevious().getPrevious(), val.size() - field.size(), text, ctx);
+//				CoverageLogger.logInteraction(frame.getPrevious().getPrevious(), val.size() - field.size(), text, ctx);
 
 				// }
 
@@ -474,7 +477,7 @@ public class CoverageClass {
 							text.append("(");
 							text.append(Conditional.getCTXString(fieldChgInfo.getCtx()));
 							text.append(")");
-							text.append(" in class " + objectInfo.getClassName() + " at line no: "
+							text.append(" in class " + fieldChgInfo.getClassName() + " at line no: "
 									+ fieldChgInfo.getLineNumber());
 							text.append("\n");
 						}
