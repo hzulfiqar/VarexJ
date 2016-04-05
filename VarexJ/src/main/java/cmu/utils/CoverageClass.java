@@ -494,15 +494,19 @@ public class CoverageClass {
 					List<FieldChgInfo> fieldChgInfoList = fieldChgInfoMap.get(fi.getFieldIndex());
 					if (fieldChgInfoList != null) {
 						for (FieldChgInfo fieldChgInfo : fieldChgInfoList) {
-							text.append("Line ");
-							text.append(fieldChgInfo.getLineNumber());
-							text.append(" in class ");
-							text.append(fieldChgInfo.getClassName());
-							text.append(": ");
-							text.append("value changed to " + fieldChgInfo.getFieldValue());
-							text.append(" under condition ");
-							text.append(Conditional.getCTXString(fieldChgInfo.getCtx()));
-							text.append("\n");
+//							if (!fieldChgInfo.getCtx().equivalentTo(FeatureExprFactory.True())) {
+								text.append("Line ");
+								text.append(fieldChgInfo.getLineNumber());
+								text.append(" in class ");
+								text.append(fieldChgInfo.getClassName());
+								text.append(": ");
+								text.append("value changed to " + fieldChgInfo.getFieldValue());
+								text.append(" under condition ");
+								text.append("(");
+								text.append(Conditional.getCTXString(fieldChgInfo.getCtx()));
+								text.append(")");
+								text.append("\n");
+//							}
 						}
 					}
 				}

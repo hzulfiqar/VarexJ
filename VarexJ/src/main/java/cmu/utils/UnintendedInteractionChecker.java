@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import cmu.conditional.Conditional;
+import cmu.conditional.One;
 import de.fosd.typechef.featureexpr.FeatureExpr;
 
 public class UnintendedInteractionChecker {
@@ -23,6 +24,14 @@ public class UnintendedInteractionChecker {
 		List<FieldChgInfo> fieldChgInfoList = null;
 
 		ObjectInfo objectInfo = new ObjectInfo(frame.getClassInfo().getName(), objectRef);
+
+		// if (val instanceof One<?>) {
+		// System.out.println("Concrete value: " + val.getValue());
+		// } else {
+		// System.out.println("Choice: " + val.toMap());
+		// System.out.println("Choice under ctx: " + ctx + " " +
+		// val.simplify(ctx));
+		// }
 
 		// check if we saw this object before (both class name and object ref
 		// must be unique)
@@ -52,29 +61,30 @@ public class UnintendedInteractionChecker {
 			// line number ?!
 			if (fi.isStatic()) {
 				fieldChgInfoList.add(new FieldChgInfo(ctx, frame.getPC().simplify(ctx).getValue().getLineNumber(),
-						frame.getClassInfo().getName()));
+						frame.getClassInfo().getName(), val.simplify(ctx)));
 			} else {
 				fieldChgInfoList
 						.add(new FieldChgInfo(ctx, frame.getPrevious().getPC().simplify(ctx).getValue().getLineNumber(),
-								frame.getPrevious().getClassInfo().getName()));
+								frame.getPrevious().getClassInfo().getName(), val.simplify(ctx)));
 			}
 			fieldCtxChangeMap.put(fi.getFieldIndex(), fieldChgInfoList);
 			objectCtxChangeMap.put(objectInfo, fieldCtxChangeMap);
 		}
 
-		if (prevCtx != null && !ctx.equivalentTo(prevCtx)) {
+		if (prevCtx != null && !ctx.equivalentTo(prevCtx) && !ctx.and(prevCtx).isContradiction()) {
+			// System.out.println(ctx + " " + prevCtx + " " +
+			// ctx.and(prevCtx).isContradiction());
 			FieldChgInfo currentFieldChgInfo = null;
-
 			// TODO: Why do we use current frame for static fields but previous
 			// frame for non-static ones?!
 			if (fi.isStatic()) {
 				currentFieldChgInfo = new FieldChgInfo(ctx, frame.getPC().simplify(ctx).getValue().getLineNumber(),
-						frame.getClassInfo().getName());
+						frame.getClassInfo().getName(), val.simplify(ctx));
 
 			} else {
 				currentFieldChgInfo = new FieldChgInfo(ctx,
 						frame.getPrevious().getPC().simplify(ctx).getValue().getLineNumber(),
-						frame.getPrevious().getClassInfo().getName());
+						frame.getPrevious().getClassInfo().getName(), val.simplify(ctx));
 			}
 
 			fieldChgInfoList.add(currentFieldChgInfo);
@@ -88,19 +98,39 @@ public class UnintendedInteractionChecker {
 
 	public static void checkUnintendedReadInteraction(StackFrame frame, FieldInfo fi, int objectRef, FeatureExpr ctx,
 			ThreadInfo ti, Conditional<Integer> val, Conditional<Integer> ival) {
+
 		ObjectInfo objectInfo = new ObjectInfo(fi.getClassInfo().getName(), objectRef);
 		Map<Integer, List<FieldChgInfo>> fieldInfoMap = objectCtxChangeMap.get(objectInfo);
 		if (fieldInfoMap != null) {
 			List<FieldChgInfo> fieldChgInfoList = fieldInfoMap.get(fi.getFieldIndex());
 			if (fieldChgInfoList != null) {
+				// for (int i = 0; i < fieldChgInfoList.size(); i++) {
+				// FieldChgInfo fieldChgInfoObj = fieldChgInfoList.get(i);
+				// if (fieldChgInfoObj.getCtx().equivalentTo(ctx)) {
+				// // System.out.println("In list " +
+				// // fieldChgInfoObj.getCtx() + " value: "
+				// // + fieldChgInfoObj.getFieldValue() + " ,Current: " +
+				// // ctx + " " + ival);
+				// }
+				// }
+
 				FieldChgInfo lastInfoObj = fieldChgInfoList.get(fieldChgInfoList.size() - 1);
 				FeatureExpr prevCtx = lastInfoObj.getCtx();
-				if (!prevCtx.equivalentTo(ctx)) {
+				// System.out.println("Simple: " + ival);
+				// System.out.println("Under: " + Conditional.getCTXString(ctx)
+				// + " " + ival.simplify(ctx));
+				// if (!prevCtx.equivalentTo(ctx)) {
+				if (!(ival.simplify(ctx) instanceof One<?>)) {
+					// System.out.println("Not!");
 					ti.coverage.coverReadField(ctx, ival, val, prevCtx, fi, frame, objectCtxChangeMap, objectInfo);
+				} else {
+					// System.out.println("Yes!");
 				}
+
+				// }
 			}
 
 		}
-		//
+
 	}
 }
