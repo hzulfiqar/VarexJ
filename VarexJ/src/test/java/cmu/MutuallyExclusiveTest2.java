@@ -5,7 +5,7 @@ import org.junit.Test;
 import gov.nasa.jpf.annotation.Conditional;
 import gov.nasa.jpf.util.test.TestJPF;
 
-public class PreviousSeenCtxTest extends TestJPF {
+public class MutuallyExclusiveTest2 extends TestJPF {
 
 	static String[] JPF_CONFIGURATION = new String[] { "+interaction=readInteraction",
 			"+search.class=.search.RandomSearch", "+choice=MapChoice" };
@@ -16,41 +16,39 @@ public class PreviousSeenCtxTest extends TestJPF {
 	static boolean b = true;
 	@Conditional
 	static boolean c = true;
-	@Conditional
-	static boolean d = true;
 
 	@Test
-	public void previousSeenCtxTest() {
+	public void mutuallyExclusiveTest2() {
 		if (verifyNoPropertyViolation(JPF_CONFIGURATION)) {
-			Class3 globalObj = new Class3();
+			Class2 globalObj = new Class2();
 			if (a) {
-				globalObj.setU(4);
+				globalObj.setS(3);
 			}
-
 			if (b) {
-				globalObj.incrementU(8);
+				globalObj.setS(13);
+			}
+			if (!a && !b && c) {
+				globalObj.setS(30);
 			}
 
-			if (a) {
-				System.out.println(globalObj.u);
+			if (c) {
+				globalObj.setS(35);
 			}
+
+			System.out.println(globalObj.s);
 		}
 	}
 
 }
 
-class Class3 {
-	int u;
+class Class2 {
+	int s;
 
-	public Class3() {
-		this.u = 1;
-	}
-	
-	public void incrementU(int inc){
-		u+=inc;
+	public Class2() {
+		this.s = 1;
 	}
 
-	public void setU(int u) {
-		this.u = u;
+	public void setS(int s) {
+		this.s = s;
 	}
 }

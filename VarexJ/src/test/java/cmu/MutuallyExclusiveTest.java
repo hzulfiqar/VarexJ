@@ -16,16 +16,18 @@ public class MutuallyExclusiveTest extends TestJPF {
 	static boolean b = true;
 
 	@Test
-	public void globalVariableTest() {
+	public void mutuallyExclusiveTest() {
 		if (verifyNoPropertyViolation(JPF_CONFIGURATION)) {
 			MyClass2 globalObj = new MyClass2();
 			if (a) {
 				globalObj.setW(7);
-			} else {
+			}
+			if (!a) {
 				globalObj.setW(80);
 			}
 
 			System.out.println(globalObj.w);
+
 		}
 	}
 

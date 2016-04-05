@@ -5,7 +5,7 @@ import org.junit.Test;
 import gov.nasa.jpf.annotation.Conditional;
 import gov.nasa.jpf.util.test.TestJPF;
 
-public class PreviousSeenCtxTest extends TestJPF {
+public class ReadInteraction2 extends TestJPF {
 
 	static String[] JPF_CONFIGURATION = new String[] { "+interaction=readInteraction",
 			"+search.class=.search.RandomSearch", "+choice=MapChoice" };
@@ -20,34 +20,29 @@ public class PreviousSeenCtxTest extends TestJPF {
 	static boolean d = true;
 
 	@Test
-	public void previousSeenCtxTest() {
+	public void readInteraction2() {
 		if (verifyNoPropertyViolation(JPF_CONFIGURATION)) {
-			Class3 globalObj = new Class3();
+			TestClass2 globalObj = new TestClass2();
 			if (a) {
-				globalObj.setU(4);
+				globalObj.setU(40);
 			}
 
 			if (b) {
-				globalObj.incrementU(8);
+				globalObj.setU(8);
 			}
 
-			if (a) {
+			if (b) {
 				System.out.println(globalObj.u);
 			}
 		}
 	}
-
 }
 
-class Class3 {
+class TestClass2 {
 	int u;
 
-	public Class3() {
+	public TestClass2() {
 		this.u = 1;
-	}
-	
-	public void incrementU(int inc){
-		u+=inc;
 	}
 
 	public void setU(int u) {
