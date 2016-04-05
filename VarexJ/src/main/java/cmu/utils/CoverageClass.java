@@ -423,28 +423,43 @@ public class CoverageClass {
 				// if(c)
 				// obj2.setX(10);
 				// if (val.size() - field.size() != 0) {
+
+				// System.out.println("ctx: " + Conditional.getCTXString(ctx) +
+				// " newvalue:" + val + " oldValue:" + field
+				// + " " + fi.toString());
+
 				StringBuilder text = new StringBuilder();
-				text.append("Value of (" + fi.getName() + ") is changed under different contexts: ");
+				text.append("Value of (" + fi.getName() + ") is changed previously under different contexts: ");
 				// text.append("\n(");
 				Map<Integer, List<FieldChgInfo>> fieldChgInfoMap = objectCtxChangeMap.get(objectInfo);
 				List<FieldChgInfo> fieldChgInfoList = fieldChgInfoMap.get(fi.getFieldIndex());
 				if (fieldChgInfoList != null) {
 					for (FieldChgInfo fieldChgInfo : fieldChgInfoList) {
-						text.append("\n(");
-						text.append(Conditional.getCTXString(fieldChgInfo.getCtx()));
-						text.append(") ");
-						text.append(
-								"in class " + fieldChgInfo.getClassName() + " at line number: " + fieldChgInfo.getLineNumber());
+						if (fieldChgInfoList.indexOf(fieldChgInfo) != fieldChgInfoList.size() - 1) {
+							text.append("\n(");
+							text.append(Conditional.getCTXString(fieldChgInfo.getCtx()));
+							text.append(") ");
+							text.append("in class " + fieldChgInfo.getClassName() + " at line number: "
+									+ fieldChgInfo.getLineNumber() + " , and value was: "
+									+ fieldChgInfo.getFieldValue());
+						} else {
+							text.append("\nNow, under (");
+							text.append(Conditional.getCTXString(fieldChgInfo.getCtx()));
+							text.append(") ");
+							text.append("in class " + fieldChgInfo.getClassName() + " at line number: "
+									+ fieldChgInfo.getLineNumber() + " , value is: " + fieldChgInfo.getFieldValue());
+						}
+
 					}
 				}
 				// text.append(")");
-//				TODO interaction degree, we have to decide...
-//				TODO Propogation
-				
-				
+				// TODO interaction degree, we have to decide...
+				// TODO Propogation
+
 				CoverageLogger.logInteraction(frame, val.size() - field.size(), text, ctx);
 				CoverageLogger.logInteraction(frame.getPrevious(), val.size() - field.size(), text, ctx);
-//				CoverageLogger.logInteraction(frame.getPrevious().getPrevious(), val.size() - field.size(), text, ctx);
+				// CoverageLogger.logInteraction(frame.getPrevious().getPrevious(),
+				// val.size() - field.size(), text, ctx);
 
 				// }
 
@@ -463,22 +478,30 @@ public class CoverageClass {
 				// I removed it for now, but this causes it to display the
 				// interaction degree as 0.
 				// if (val.size() - field.size() != 0) {
+
+				// System.out.println("ctx: " + Conditional.getCTXString(ctx) +
+				// " newvalue:" + val + " oldValue:" + field
+				// + " " + fi.toString());
 				StringBuilder text = new StringBuilder();
-				text.append("Value of (" + fi.getName() + ") is read under context ");
-				text.append("(");
-				text.append(Conditional.getCTXString(ctx));
-				text.append("), but it was changed under contexts: ");
+				text.append("The current value of (" + fi.getName() + ") is ");
+				text.append(val.simplify(ctx));
+				text.append(
+						", which means it depends on multiple configuration options. This conditional value is a result of the following changes to ("
+								+ fi.getName() + ")");
 				text.append("\n");
 				Map<Integer, List<FieldChgInfo>> fieldChgInfoMap = objectCtxChangeMap.get(objectInfo);
 				if (fieldChgInfoMap != null) {
 					List<FieldChgInfo> fieldChgInfoList = fieldChgInfoMap.get(fi.getFieldIndex());
 					if (fieldChgInfoList != null) {
 						for (FieldChgInfo fieldChgInfo : fieldChgInfoList) {
-							text.append("(");
+							text.append("Line ");
+							text.append(fieldChgInfo.getLineNumber());
+							text.append(" in class ");
+							text.append(fieldChgInfo.getClassName());
+							text.append(": ");
+							text.append("value changed to " + fieldChgInfo.getFieldValue());
+							text.append(" under condition ");
 							text.append(Conditional.getCTXString(fieldChgInfo.getCtx()));
-							text.append(")");
-							text.append(" in class " + fieldChgInfo.getClassName() + " at line no: "
-									+ fieldChgInfo.getLineNumber());
 							text.append("\n");
 						}
 					}
