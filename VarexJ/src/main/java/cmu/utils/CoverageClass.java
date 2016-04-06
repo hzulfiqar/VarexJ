@@ -494,7 +494,10 @@ public class CoverageClass {
 					List<FieldChgInfo> fieldChgInfoList = fieldChgInfoMap.get(fi.getFieldIndex());
 					if (fieldChgInfoList != null) {
 						for (FieldChgInfo fieldChgInfo : fieldChgInfoList) {
-//							if (!fieldChgInfo.getCtx().equivalentTo(FeatureExprFactory.True())) {
+							// if
+							// (!fieldChgInfo.getCtx().equivalentTo(FeatureExprFactory.True()))
+							// {
+							if (!ctx.and(fieldChgInfo.getCtx()).isContradiction()) {
 								text.append("Line ");
 								text.append(fieldChgInfo.getLineNumber());
 								text.append(" in class ");
@@ -506,7 +509,8 @@ public class CoverageClass {
 								text.append(Conditional.getCTXString(fieldChgInfo.getCtx()));
 								text.append(")");
 								text.append("\n");
-//							}
+							}
+							// }
 						}
 					}
 				}
