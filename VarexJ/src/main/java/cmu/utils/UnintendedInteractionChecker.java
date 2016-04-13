@@ -12,6 +12,7 @@ import java.util.Map;
 import cmu.conditional.Conditional;
 import cmu.conditional.One;
 import de.fosd.typechef.featureexpr.FeatureExpr;
+import de.fosd.typechef.featureexpr.FeatureExprFactory;
 
 public class UnintendedInteractionChecker {
 
@@ -59,16 +60,18 @@ public class UnintendedInteractionChecker {
 
 			// TODO: Why do we have to get the previous frame to get the correct
 			// line number ?!
-			if (fi.isStatic()) {
-				fieldChgInfoList.add(new FieldChgInfo(ctx, frame.getPC().simplify(ctx).getValue().getLineNumber(),
-						frame.getClassInfo().getName(), val.simplify(ctx)));
-			} else {
-				fieldChgInfoList
-						.add(new FieldChgInfo(ctx, frame.getPrevious().getPC().simplify(ctx).getValue().getLineNumber(),
-								frame.getPrevious().getClassInfo().getName(), val.simplify(ctx)));
-			}
-			fieldCtxChangeMap.put(fi.getFieldIndex(), fieldChgInfoList);
-			objectCtxChangeMap.put(objectInfo, fieldCtxChangeMap);
+//			if (!ctx.equivalentTo(FeatureExprFactory.True())) {
+				if (fi.isStatic()) {
+					fieldChgInfoList.add(new FieldChgInfo(ctx, frame.getPC().simplify(ctx).getValue().getLineNumber(),
+							frame.getClassInfo().getName(), val.simplify(ctx)));
+				} else {
+					fieldChgInfoList.add(
+							new FieldChgInfo(ctx, frame.getPrevious().getPC().simplify(ctx).getValue().getLineNumber(),
+									frame.getPrevious().getClassInfo().getName(), val.simplify(ctx)));
+				}
+				fieldCtxChangeMap.put(fi.getFieldIndex(), fieldChgInfoList);
+				objectCtxChangeMap.put(objectInfo, fieldCtxChangeMap);
+//			}
 		}
 
 		if (prevCtx != null && !ctx.equivalentTo(prevCtx) && !ctx.and(prevCtx).isContradiction()) {

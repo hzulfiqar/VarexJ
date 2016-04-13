@@ -435,21 +435,23 @@ public class CoverageClass {
 				List<FieldChgInfo> fieldChgInfoList = fieldChgInfoMap.get(fi.getFieldIndex());
 				if (fieldChgInfoList != null) {
 					for (FieldChgInfo fieldChgInfo : fieldChgInfoList) {
-						if (fieldChgInfoList.indexOf(fieldChgInfo) != fieldChgInfoList.size() - 1) {
-							text.append("\n(");
-							text.append(Conditional.getCTXString(fieldChgInfo.getCtx()));
-							text.append(") ");
-							text.append("in class " + fieldChgInfo.getClassName() + " at line number: "
-									+ fieldChgInfo.getLineNumber() + " , and value was: "
-									+ fieldChgInfo.getFieldValue());
-						} else {
-							text.append("\nNow, under (");
-							text.append(Conditional.getCTXString(fieldChgInfo.getCtx()));
-							text.append(") ");
-							text.append("in class " + fieldChgInfo.getClassName() + " at line number: "
-									+ fieldChgInfo.getLineNumber() + " , value is: " + fieldChgInfo.getFieldValue());
+						if (!fieldChgInfo.getCtx().equivalentTo(FeatureExprFactory.True())) {
+							if (fieldChgInfoList.indexOf(fieldChgInfo) != fieldChgInfoList.size() - 1) {
+								text.append("\n(");
+								text.append(Conditional.getCTXString(fieldChgInfo.getCtx()));
+								text.append(") ");
+								text.append("in class " + fieldChgInfo.getClassName() + " at line number: "
+										+ fieldChgInfo.getLineNumber() + " , and value was: "
+										+ fieldChgInfo.getFieldValue());
+							} else {
+								text.append("\nNow, under (");
+								text.append(Conditional.getCTXString(fieldChgInfo.getCtx()));
+								text.append(") ");
+								text.append("in class " + fieldChgInfo.getClassName() + " at line number: "
+										+ fieldChgInfo.getLineNumber() + " , value is: "
+										+ fieldChgInfo.getFieldValue());
+							}
 						}
-
 					}
 				}
 				// text.append(")");
@@ -494,23 +496,21 @@ public class CoverageClass {
 					List<FieldChgInfo> fieldChgInfoList = fieldChgInfoMap.get(fi.getFieldIndex());
 					if (fieldChgInfoList != null) {
 						for (FieldChgInfo fieldChgInfo : fieldChgInfoList) {
-							// if
-							// (!fieldChgInfo.getCtx().equivalentTo(FeatureExprFactory.True()))
-							// {
-							if (!ctx.and(fieldChgInfo.getCtx()).isContradiction()) {
-								text.append("Line ");
-								text.append(fieldChgInfo.getLineNumber());
-								text.append(" in class ");
-								text.append(fieldChgInfo.getClassName());
-								text.append(": ");
-								text.append("value changed to " + fieldChgInfo.getFieldValue());
-								text.append(" under condition ");
-								text.append("(");
-								text.append(Conditional.getCTXString(fieldChgInfo.getCtx()));
-								text.append(")");
-								text.append("\n");
+							if (!fieldChgInfo.getCtx().equivalentTo(FeatureExprFactory.True())) {
+								if (!ctx.and(fieldChgInfo.getCtx()).isContradiction()) {
+									text.append("Line ");
+									text.append(fieldChgInfo.getLineNumber());
+									text.append(" in class ");
+									text.append(fieldChgInfo.getClassName());
+									text.append(": ");
+									text.append("value changed to " + fieldChgInfo.getFieldValue());
+									text.append(" under condition ");
+									text.append("(");
+									text.append(Conditional.getCTXString(fieldChgInfo.getCtx()));
+									text.append(")");
+									text.append("\n");
+								}
 							}
-							// }
 						}
 					}
 				}
