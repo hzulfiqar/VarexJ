@@ -409,6 +409,7 @@ public class CoverageClass {
 	public void coverWriteField(FeatureExpr ctx, Conditional<?> val, Conditional<?> field, FieldInfo fi,
 			Map<ObjectInfo, Map<Integer, List<FieldChgInfo>>> objectCtxChangeMap, StackFrame frame,
 			ObjectInfo objectInfo) {
+		boolean listFlag = false;
 		if (JPF.COVERAGE != null) {
 			if (JPF.SELECTED_COVERAGE_TYPE == JPF.COVERAGE_TYPE.writeInteraction) {
 				// TODO: Why was this condition necessary? This prevented it
@@ -436,20 +437,23 @@ public class CoverageClass {
 				if (fieldChgInfoList != null) {
 					for (FieldChgInfo fieldChgInfo : fieldChgInfoList) {
 						if (!fieldChgInfo.getCtx().equivalentTo(FeatureExprFactory.True())) {
-							if (fieldChgInfoList.indexOf(fieldChgInfo) != fieldChgInfoList.size() - 1) {
-								text.append("\n(");
-								text.append(Conditional.getCTXString(fieldChgInfo.getCtx()));
-								text.append(") ");
-								text.append("in class " + fieldChgInfo.getClassName() + " at line number: "
-										+ fieldChgInfo.getLineNumber() + " , and value was: "
-										+ fieldChgInfo.getFieldValue());
-							} else {
-								text.append("\nNow, under (");
-								text.append(Conditional.getCTXString(fieldChgInfo.getCtx()));
-								text.append(") ");
-								text.append("in class " + fieldChgInfo.getClassName() + " at line number: "
-										+ fieldChgInfo.getLineNumber() + " , value is: "
-										+ fieldChgInfo.getFieldValue());
+							if (!ctx.and(fieldChgInfo.getCtx()).isContradiction()) {
+								listFlag = true;
+								if (fieldChgInfoList.indexOf(fieldChgInfo) != fieldChgInfoList.size() - 1) {
+									text.append("\n(");
+									text.append(Conditional.getCTXString(fieldChgInfo.getCtx()));
+									text.append(") ");
+									text.append("in class " + fieldChgInfo.getClassName() + " at line number: "
+											+ fieldChgInfo.getLineNumber() + " , and value was: "
+											+ fieldChgInfo.getFieldValue());
+								} else {
+									text.append("\nNow, under (");
+									text.append(Conditional.getCTXString(fieldChgInfo.getCtx()));
+									text.append(") ");
+									text.append("in class " + fieldChgInfo.getClassName() + " at line number: "
+											+ fieldChgInfo.getLineNumber() + " , value is: "
+											+ fieldChgInfo.getFieldValue());
+								}
 							}
 						}
 					}
@@ -458,10 +462,12 @@ public class CoverageClass {
 				// TODO interaction degree, we have to decide...
 				// TODO Propogation
 
-				CoverageLogger.logInteraction(frame, val.size() - field.size(), text, ctx);
-				CoverageLogger.logInteraction(frame.getPrevious(), val.size() - field.size(), text, ctx);
-				// CoverageLogger.logInteraction(frame.getPrevious().getPrevious(),
-				// val.size() - field.size(), text, ctx);
+				if (listFlag) {
+					CoverageLogger.logInteraction(frame, val.size() - field.size(), text, ctx);
+					CoverageLogger.logInteraction(frame.getPrevious(), val.size() - field.size(), text, ctx);
+					// CoverageLogger.logInteraction(frame.getPrevious().getPrevious(),
+					// val.size() - field.size(), text, ctx);
+				}
 
 				// }
 
@@ -473,6 +479,7 @@ public class CoverageClass {
 	public void coverReadField(FeatureExpr ctx, Conditional<?> val, Conditional<?> field, FeatureExpr preCtx,
 			FieldInfo fi, StackFrame frame, Map<ObjectInfo, Map<Integer, List<FieldChgInfo>>> objectCtxChangeMap,
 			ObjectInfo objectInfo) {
+		boolean listFlag = false;
 		if (JPF.COVERAGE != null) {
 			if (JPF.SELECTED_COVERAGE_TYPE == JPF.COVERAGE_TYPE.readInteraction) {
 				// TODO: Why was this condition necessary? This prevented it
@@ -496,8 +503,10 @@ public class CoverageClass {
 					List<FieldChgInfo> fieldChgInfoList = fieldChgInfoMap.get(fi.getFieldIndex());
 					if (fieldChgInfoList != null) {
 						for (FieldChgInfo fieldChgInfo : fieldChgInfoList) {
+//							System.out.println(ctx + " " + fieldChgInfo.getCtx());
 							if (!fieldChgInfo.getCtx().equivalentTo(FeatureExprFactory.True())) {
 								if (!ctx.and(fieldChgInfo.getCtx()).isContradiction()) {
+									listFlag = true;
 									text.append("Line ");
 									text.append(fieldChgInfo.getLineNumber());
 									text.append(" in class ");
@@ -518,7 +527,9 @@ public class CoverageClass {
 				// text.append("\n");
 				// text.append(": ");
 
-				CoverageLogger.logInteraction(frame, val.size() - field.size(), text, ctx);
+				if (listFlag) {
+					CoverageLogger.logInteraction(frame, val.size() - field.size(), text, ctx);
+				}
 
 				// }
 			}
