@@ -430,7 +430,8 @@ public class CoverageClass {
 				// + " " + fi.toString());
 
 				StringBuilder text = new StringBuilder();
-				text.append("Value of (" + fi.getName() + ") is changed previously under different contexts: ");
+				text.append("Value of (" + fi.getName()
+						+ ") was non-conditionally initialized but has since changed under contexts: ");
 				// text.append("\n(");
 				Map<Integer, List<FieldChgInfo>> fieldChgInfoMap = objectCtxChangeMap.get(objectInfo);
 				List<FieldChgInfo> fieldChgInfoList = fieldChgInfoMap.get(fi.getFieldIndex());
@@ -439,21 +440,12 @@ public class CoverageClass {
 						if (!fieldChgInfo.getCtx().equivalentTo(FeatureExprFactory.True())) {
 							if (!ctx.and(fieldChgInfo.getCtx()).isContradiction()) {
 								listFlag = true;
-								if (fieldChgInfoList.indexOf(fieldChgInfo) != fieldChgInfoList.size() - 1) {
-									text.append("\n(");
-									text.append(Conditional.getCTXString(fieldChgInfo.getCtx()));
-									text.append(") ");
-									text.append("in class " + fieldChgInfo.getClassName() + " at line number: "
-											+ fieldChgInfo.getLineNumber() + " , and value was: "
-											+ fieldChgInfo.getFieldValue());
-								} else {
-									text.append("\nNow, under (");
-									text.append(Conditional.getCTXString(fieldChgInfo.getCtx()));
-									text.append(") ");
-									text.append("in class " + fieldChgInfo.getClassName() + " at line number: "
-											+ fieldChgInfo.getLineNumber() + " , value is: "
-											+ fieldChgInfo.getFieldValue());
-								}
+								text.append("\n(");
+								text.append(Conditional.getCTXString(fieldChgInfo.getCtx()));
+								text.append(") ");
+								text.append("in class " + fieldChgInfo.getClassName() + " at line number: "
+										+ fieldChgInfo.getLineNumber() + " , and value was: "
+										+ fieldChgInfo.getFieldValue());
 							}
 						}
 					}
@@ -503,7 +495,8 @@ public class CoverageClass {
 					List<FieldChgInfo> fieldChgInfoList = fieldChgInfoMap.get(fi.getFieldIndex());
 					if (fieldChgInfoList != null) {
 						for (FieldChgInfo fieldChgInfo : fieldChgInfoList) {
-//							System.out.println(ctx + " " + fieldChgInfo.getCtx());
+							// System.out.println(ctx + " " +
+							// fieldChgInfo.getCtx());
 							if (!fieldChgInfo.getCtx().equivalentTo(FeatureExprFactory.True())) {
 								if (!ctx.and(fieldChgInfo.getCtx()).isContradiction()) {
 									listFlag = true;
@@ -529,6 +522,10 @@ public class CoverageClass {
 
 				if (listFlag) {
 					CoverageLogger.logInteraction(frame, val.size() - field.size(), text, ctx);
+					// CoverageLogger.logInteraction(frame.getPrevious(),
+					// val.size() - field.size(), text, ctx);
+					// CoverageLogger.logInteraction(frame.getPrevious().getPrevious(),
+					// val.size() - field.size(), text, ctx);
 				}
 
 				// }
