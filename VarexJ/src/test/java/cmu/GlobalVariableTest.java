@@ -7,7 +7,7 @@ import gov.nasa.jpf.util.test.TestJPF;
 
 public class GlobalVariableTest extends TestJPF {
 
-	static String[] JPF_CONFIGURATION = new String[] { "+interaction=readInteraction",
+	static String[] JPF_CONFIGURATION = new String[] { "+interaction=writeInteraction",
 			"+search.class=.search.RandomSearch", "+choice=MapChoice" };
 
 	@Conditional

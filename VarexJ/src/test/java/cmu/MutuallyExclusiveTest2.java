@@ -7,32 +7,28 @@ import gov.nasa.jpf.util.test.TestJPF;
 
 public class MutuallyExclusiveTest2 extends TestJPF {
 
-	static String[] JPF_CONFIGURATION = new String[] { "+interaction=readInteraction",
+	static String[] JPF_CONFIGURATION = new String[] { "+interaction=writeInteraction",
 			"+search.class=.search.RandomSearch", "+choice=MapChoice" };
 
 	@Conditional
-	static boolean a = true;
+	static boolean config_a = true;
 	@Conditional
-	static boolean b = true;
+	static boolean config_b = true;
 	@Conditional
-	static boolean c = true;
+	static boolean config_c = true;
 
 	@Test
 	public void mutuallyExclusiveTest2() {
 		if (verifyNoPropertyViolation(JPF_CONFIGURATION)) {
 			Class2 globalObj = new Class2();
-			if (a) {
+			if (config_a) {
 				globalObj.setS(3);
 			}
-			if (b) {
+			if (config_b) {
 				globalObj.setS(13);
 			}
-			if (!a && !b && c) {
+			if (!config_a && !config_b && config_c) {
 				globalObj.setS(30);
-			}
-
-			if (c) {
-				globalObj.setS(35);
 			}
 
 			System.out.println(globalObj.s);

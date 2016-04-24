@@ -11,27 +11,23 @@ public class ReadInteraction1 extends TestJPF {
 			"+search.class=.search.RandomSearch", "+choice=MapChoice" };
 
 	@Conditional
-	static boolean a = true;
+	static boolean config_a = true;
 	@Conditional
-	static boolean b = true;
-	@Conditional
-	static boolean c = true;
-	@Conditional
-	static boolean d = true;
+	static boolean config_b = true;
 
 	@Test
 	public void readInteraction1() {
 		if (verifyNoPropertyViolation(JPF_CONFIGURATION)) {
 			TestClass1 globalObj = new TestClass1();
-			if (a) {
+			if (config_a) {
 				globalObj.setU(4);
 			}
 
-			if (b) {
+			if (config_b) {
 				globalObj.setU(8);
 			}
 
-			if (a) {
+			if (config_a) {
 				System.out.println(globalObj.u);
 			}
 		}
